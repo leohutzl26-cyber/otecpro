@@ -78,6 +78,19 @@ export const clientesMock: Cliente[] = [
       { id: 'con8', nombre: 'Patricia López', cargo: 'Jefa de Desarrollo', email: 'p.lopez@masisa.com', telefono: '+56 2 2578 9000', esDecisor: true, esCoordinador: true }
     ],
     fechaRegistro: '2024-01-20'
+  },
+  {
+    id: 'c6',
+    rut: '96.806.000-4',
+    razonSocial: 'Entel S.A.',
+    giro: 'Telecomunicaciones',
+    direccion: 'Av. Andrés Bello 2687',
+    comuna: 'Las Condes',
+    region: 'Metropolitana',
+    contactos: [
+      { id: 'con9', nombre: 'Ricardo Salinas', cargo: 'Subgerente de Formación', email: 'r.salinas@entel.cl', telefono: '+56 2 2360 0000', esDecisor: true, esCoordinador: true }
+    ],
+    fechaRegistro: '2024-02-15'
   }
 ];
 
@@ -186,6 +199,19 @@ export const cursosMock: Curso[] = [
     esSAG: false,
     activo: true,
     archivosAdjuntos: []
+  },
+  {
+    id: 'cur9',
+    codigoInterno: 'OTEC-009',
+    nombre: 'Fundamentos de Ciberseguridad Corporativa',
+    descripcion: 'Conceptos básicos de seguridad de la información, phishing, y protección de activos digitales.',
+    horasTotales: 24,
+    modalidad: 'E-learning Asincrónico',
+    esSAG: false,
+    activo: true,
+    archivosAdjuntos: [
+      { id: 'a7', nombre: 'Guía de Seguridad.pdf', tipo: 'documento', url: '/docs/ciberseguridad.pdf', tamaño: 5600000, fechaSubida: '2025-03-01', descripcion: 'Guía de buenas prácticas' }
+    ]
   }
 ];
 

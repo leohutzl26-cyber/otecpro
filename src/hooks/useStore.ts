@@ -22,6 +22,17 @@ export function useStore() {
   const [transacciones, setTransacciones] = useState<Transaccion[]>(transaccionesMock);
   const [alertas, setAlertas] = useState<Alerta[]>(alertasMock);
 
+  // --- ACCIÓN GLOBAL ---
+  const resetData = useCallback(() => {
+    setClientes(clientesMock);
+    setCursos(cursosMock);
+    setRelatores(relatoresMock);
+    setEjecuciones(ejecucionesMock);
+    setCotizaciones(cotizacionesMock);
+    setTransacciones(transaccionesMock);
+    setAlertas(alertasMock);
+  }, []);
+
   // --- CLIENTES ---
   const addCliente = useCallback((cliente: Omit<Cliente, 'id'>) => {
     const newCliente = { ...cliente, id: `c${Date.now()}` };
@@ -469,6 +480,7 @@ export function useStore() {
     // Acciones Alertas
     dismissAlerta,
     addAlerta,
+    resetData,
     
     // Getters
     getClienteById,

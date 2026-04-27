@@ -1,7 +1,7 @@
 import { 
   TrendingUp, Users, BookOpen, DollarSign, 
   AlertTriangle, Calendar, CheckCircle, FileText,
-  ArrowRight, GraduationCap, Briefcase
+  ArrowRight, GraduationCap, Briefcase, Download
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -62,6 +62,28 @@ export default function Dashboard({ store, onNavigate }: DashboardProps) {
 
   return (
     <div className="space-y-6">
+      {/* Header con Acciones */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3 p-2 bg-blue-50 border border-blue-100 rounded-lg">
+          <Badge className="bg-blue-600">Modo Demo</Badge>
+          <p className="text-xs text-blue-700 font-medium">
+            Estás visualizando datos de ejemplo. Puedes resetearlos en cualquier momento.
+          </p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-7 text-xs bg-white border-blue-200 hover:bg-blue-100 text-blue-700"
+            onClick={() => {
+              store.resetData();
+              import('sonner').then(({ toast }) => toast.success('Datos de ejemplo recargados correctamente'));
+            }}
+          >
+            <Download className="w-3 h-3 mr-1" />
+            Cargar/Resetear Datos
+          </Button>
+        </div>
+      </div>
+
       {/* KPIs Principales */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
