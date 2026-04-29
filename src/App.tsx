@@ -13,6 +13,8 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { useStore } from '@/hooks/useStore';
+import { supabase } from '@/lib/supabase';
+import Login from '@/sections/Login';
 
 // Módulos
 import Dashboard from '@/sections/Dashboard';
@@ -68,9 +70,25 @@ const menuItems: MenuItem[] = [
 ];
 
 function App() {
+  const [session, setSession] = useState<any>(null);
   const [moduloActivo, setModuloActivo] = useState<Modulo>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [submenuAbierto, setSubmenuAbierto] = useState<string | null>(null);
+
+  // Verificar sesión activa
+  useState(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  });
   
   const store = useStore();
   const { alertas, dismissAlerta } = store;
@@ -107,6 +125,14 @@ function App() {
         return <Dashboard store={store} onNavigate={setModuloActivo} />;
     }
   };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
+
+  if (!session) {
+    return <Login onLogin={() => {}} />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
@@ -281,7 +307,7 @@ function App() {
                   <Settings className="w-4 h-4 mr-2" />
                   Configuración
                 </DropdownMenuItem>
-                <DropdownMenuItem className="text-red-600">
+                <DropdownMenuItem className="text-red-600" onClick={handleLogout}>
                   <LogOut className="w-4 h-4 mr-2" />
                   Cerrar Sesión
                 </DropdownMenuItem>
