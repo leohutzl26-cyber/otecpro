@@ -26,6 +26,7 @@ import Relatores from '@/sections/Relatores';
 import Finanzas from '@/sections/Finanzas';
 import Calendario from '@/sections/Calendario';
 import Reportes from '@/sections/Reportes';
+import Configuracion from '@/sections/Configuracion';
 
 // ============================================
 // ERP OTEC PRO - APLICACIÓN PRINCIPAL
@@ -120,7 +121,7 @@ function App() {
       case 'reportes':
         return <Reportes store={store} />;
       case 'configuracion':
-        return <Dashboard store={store} onNavigate={setModuloActivo} />;
+        return <Configuracion store={store} />;
       default:
         return <Dashboard store={store} onNavigate={setModuloActivo} />;
     }
