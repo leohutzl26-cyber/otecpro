@@ -284,9 +284,9 @@ export const useStore = create<StoreState>((set, get) => ({
     try {
       const { error } = await supabase.from('cotizaciones').insert(newCotizacion);
       if (error) throw error;
-    } catch (error) {
+    } catch (error: any) {
       set(state => ({ cotizaciones: state.cotizaciones.filter(c => c.id !== newCotizacion.id) }));
-      toast.error('Error al guardar cotización'); throw error;
+      toast.error(`Error al crear: ${error.message || 'Desconocido'}`); throw error;
     }
     return newCotizacion;
   },
@@ -298,9 +298,9 @@ export const useStore = create<StoreState>((set, get) => ({
     try {
       const { error } = await supabase.from('cotizaciones').update(data).eq('id', id);
       if (error) throw error;
-    } catch (error) {
+    } catch (error: any) {
       set(state => ({ cotizaciones: state.cotizaciones.map(c => c.id === id ? old : c) }));
-      toast.error('Error al actualizar cotización'); throw error;
+      toast.error(`Error al actualizar: ${error.message || 'Desconocido'}`); throw error;
     }
   },
 
@@ -322,9 +322,9 @@ export const useStore = create<StoreState>((set, get) => ({
     try {
       await supabase.from('ejecuciones').insert(newEjecucion);
       await updateCotizacion(cotizacionId, { ejecucionId: newEjecucion.id });
-    } catch (error) {
+    } catch (error: any) {
       // Simplificado rollback
-      toast.error('Error al generar la ejecución en el servidor');
+      toast.error(`Error al generar la ejecución en el servidor: ${error.message || 'Desconocido'}`);
     }
     return newEjecucion;
   },
