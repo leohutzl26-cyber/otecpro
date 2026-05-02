@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Users, BookOpen, GraduationCap, 
   DollarSign, Calendar, BarChart3, Settings, Menu, 
@@ -12,6 +12,8 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Toaster } from '@/components/ui/sonner';
 import { useStore } from '@/hooks/useStore';
 import { supabase } from '@/lib/supabase';
 import Login from '@/sections/Login';
@@ -76,24 +78,30 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [submenuAbierto, setSubmenuAbierto] = useState<string | null>(null);
 
-  // Verificar sesión activa
-  useState(() => {
+  const store = useStore();
+  const { alertas, dismissAlerta, initData } = store;
+
+  // Verificar sesión activa y cargar datos
+  useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      if (session) {
+        initData();
+      }
     });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      if (session) {
+        initData();
+      }
     });
 
     return () => subscription.unsubscribe();
-  });
+  }, [initData]);
   
-  const store = useStore();
-  const { alertas, dismissAlerta } = store;
-
   const alertasPendientes = alertas.filter(a => a.prioridad === 'Alta').length;
 
   const toggleSubmenu = (id: string) => {
@@ -289,9 +297,12 @@ function App() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <User className="w-4 h-4 text-blue-600" />
-                  </div>
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src="" alt="Admin" />
+                    <AvatarFallback className="bg-blue-100 text-blue-600">
+                      <User className="w-4 h-4" />
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="text-left hidden sm:block">
                     <p className="text-sm font-medium text-slate-800">Administrador</p>
                     <p className="text-xs text-slate-500">admin@otecpro.cl</p>
@@ -322,6 +333,8 @@ function App() {
           {renderModulo()}
         </div>
       </main>
+      
+      <Toaster position="top-right" richColors />
     </div>
   );
 }
