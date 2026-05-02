@@ -552,4 +552,4 @@ export const useStore = create<StoreState>((set, get) => ({
   }
 }));
 
-export type Store = ReturnType<typeof useStore>;
+export type Store = StoreState;
