@@ -1,7 +1,7 @@
 import { 
   TrendingUp, Users, BookOpen, DollarSign, 
   AlertTriangle, Calendar, CheckCircle, FileText,
-  ArrowRight, GraduationCap, Briefcase, Download
+  ArrowRight, GraduationCap, Briefcase
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
