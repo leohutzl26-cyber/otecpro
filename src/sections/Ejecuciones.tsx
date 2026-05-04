@@ -87,106 +87,172 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
         </div>
       </div>
 
-      {/* Búsqueda */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-        <Input 
-          className="pl-10"
-          placeholder="Buscar por curso, cliente o estado..."
-          value={busqueda}
-          onChange={e => setBusqueda(e.target.value)}
-        />
-      </div>
+      {/* Tabs para cambiar entre Vista Lista y Tablero Kanban */}
+      <Tabs defaultValue="kanban" className="w-full">
+        <div className="flex justify-between items-center mb-4">
+          <div className="relative w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <Input 
+              className="pl-10"
+              placeholder="Buscar por curso, cliente..."
+              value={busqueda}
+              onChange={e => setBusqueda(e.target.value)}
+            />
+          </div>
+          <TabsList>
+            <TabsTrigger value="kanban">Tablero Kanban</TabsTrigger>
+            <TabsTrigger value="lista">Vista Lista</TabsTrigger>
+          </TabsList>
+        </div>
 
-      {/* Lista de Ejecuciones */}
-      <div className="space-y-4">
-        {ejecucionesFiltradas.map((ejecucion) => {
-          const curso = cursos.find(c => c.id === ejecucion.cursoId);
-          const cliente = clientes.find(c => c.id === ejecucion.clienteId);
-          const relator = relatores.find(r => r.id === ejecucion.relatorId);
-          const progresoSAG = calcularProgresoSAG(ejecucion.participantes);
+        {/* VISTA KANBAN */}
+        <TabsContent value="kanban" className="mt-0">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
+            {(['Planificado', 'En Ejecución', 'Completado', 'Cancelado'] as EstadoEjecucion[]).map(estado => (
+              <div 
+                key={estado} 
+                className="bg-slate-100 rounded-lg p-3 min-h-[500px]"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  const id = e.dataTransfer.getData("ejecucionId");
+                  if (id) updateEjecucion(id, { estado });
+                }}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-slate-700 flex items-center gap-2">
+                    {getEstadoBadge(estado)}
+                  </h3>
+                  <Badge variant="secondary">
+                    {ejecucionesFiltradas.filter(e => e.estado === estado).length}
+                  </Badge>
+                </div>
+                
+                <div className="space-y-3">
+                  {ejecucionesFiltradas.filter(e => e.estado === estado).map(ejecucion => {
+                    const curso = cursos.find(c => c.id === ejecucion.cursoId);
+                    const cliente = clientes.find(c => c.id === ejecucion.clienteId);
+                    return (
+                      <Card 
+                        key={ejecucion.id} 
+                        draggable
+                        onDragStart={(e) => e.dataTransfer.setData("ejecucionId", ejecucion.id)}
+                        className="cursor-move hover:shadow-md transition-all active:scale-95"
+                      >
+                        <CardContent className="p-3">
+                          <div className="flex justify-between items-start mb-2">
+                            <span className="text-xs font-semibold text-slate-500">{curso?.codigoSence || 'Sin SENCE'}</span>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => verDetalle(ejecucion)}>
+                              <MoreHorizontal className="w-3 h-3" />
+                            </Button>
+                          </div>
+                          <h4 className="text-sm font-bold leading-tight mb-1">{curso?.nombre}</h4>
+                          <p className="text-xs text-slate-500 mb-3">{cliente?.razonSocial}</p>
+                          <div className="flex items-center justify-between text-xs text-slate-500">
+                            <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {ejecucion.fechaInicio?.slice(5) || 'TBD'}</span>
+                            <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {ejecucion.participantes.length}</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </TabsContent>
 
-          return (
-            <Card key={ejecucion.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      {getEstadoBadge(ejecucion.estado)}
-                      {curso?.esSAG && (
-                        <Badge className="bg-amber-500">SAG</Badge>
-                      )}
-                      {curso?.codigoSence && (
-                        <Badge variant="outline">SENCE {curso.codigoSence}</Badge>
-                      )}
-                    </div>
-                    
-                    <h3 className="font-semibold text-slate-800 mt-2">{curso?.nombre}</h3>
-                    <p className="text-sm text-slate-500">{cliente?.razonSocial}</p>
-                    
-                    <div className="flex items-center gap-4 mt-2 text-sm text-slate-600">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        {ejecucion.fechaInicio || 'Sin fecha'} - {ejecucion.fechaTermino || 'Sin fecha'}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Users className="w-4 h-4" />
-                        {ejecucion.participantes.length} participantes
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <GraduationCap className="w-4 h-4" />
-                        {relator?.nombre || 'Sin relator'}
-                      </span>
-                    </div>
+        {/* VISTA LISTA ORIGINAL */}
+        <TabsContent value="lista" className="mt-0">
+          <div className="space-y-4">
+            {ejecucionesFiltradas.map((ejecucion) => {
+              const curso = cursos.find(c => c.id === ejecucion.cursoId);
+              const cliente = clientes.find(c => c.id === ejecucion.clienteId);
+              const relator = relatores.find(r => r.id === ejecucion.relatorId);
+              const progresoSAG = calcularProgresoSAG(ejecucion.participantes);
 
-                    {/* Progreso SAG */}
-                    {curso?.esSAG && (
-                      <div className="mt-3">
-                        <div className="flex items-center gap-2 text-sm">
-                          <AlertTriangle className={`w-4 h-4 ${progresoSAG < 100 ? 'text-amber-500' : 'text-green-500'}`} />
-                          <span className="text-slate-600">Documentación SAG:</span>
-                          <Progress value={progresoSAG} className="w-32 h-2" />
-                          <span className={`text-sm font-medium ${progresoSAG < 100 ? 'text-amber-600' : 'text-green-600'}`}>
-                            {progresoSAG}%
+              return (
+                <Card key={ejecucion.id} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          {getEstadoBadge(ejecucion.estado)}
+                          {curso?.esSAG && (
+                            <Badge className="bg-amber-500">SAG</Badge>
+                          )}
+                          {curso?.codigoSence && (
+                            <Badge variant="outline">SENCE {curso.codigoSence}</Badge>
+                          )}
+                        </div>
+                        
+                        <h3 className="font-semibold text-slate-800 mt-2">{curso?.nombre}</h3>
+                        <p className="text-sm text-slate-500">{cliente?.razonSocial}</p>
+                        
+                        <div className="flex items-center gap-4 mt-2 text-sm text-slate-600">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-4 h-4" />
+                            {ejecucion.fechaInicio || 'Sin fecha'} - {ejecucion.fechaTermino || 'Sin fecha'}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Users className="w-4 h-4" />
+                            {ejecucion.participantes.length} participantes
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <GraduationCap className="w-4 h-4" />
+                            {relator?.nombre || 'Sin relator'}
                           </span>
                         </div>
-                      </div>
-                    )}
-                  </div>
 
-                  <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline" onClick={() => verDetalle(ejecucion)}>
-                      <FileText className="w-4 h-4 mr-1" />
-                      Ver
-                    </Button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="w-4 h-4" />
+                        {/* Progreso SAG */}
+                        {curso?.esSAG && (
+                          <div className="mt-3">
+                            <div className="flex items-center gap-2 text-sm">
+                              <AlertTriangle className={`w-4 h-4 ${progresoSAG < 100 ? 'text-amber-500' : 'text-green-500'}`} />
+                              <span className="text-slate-600">Documentación SAG:</span>
+                              <Progress value={progresoSAG} className="w-32 h-2" />
+                              <span className={`text-sm font-medium ${progresoSAG < 100 ? 'text-amber-600' : 'text-green-600'}`}>
+                                {progresoSAG}%
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" variant="outline" onClick={() => verDetalle(ejecucion)}>
+                          <FileText className="w-4 h-4 mr-1" />
+                          Ver
                         </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => verDetalle(ejecucion)}>
-                          <Edit className="w-4 h-4 mr-2" />
-                          Ver Detalle
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => updateEjecucion(ejecucion.id, { estado: 'En Ejecución' })}>
-                          <Clock className="w-4 h-4 mr-2" />
-                          Iniciar Curso
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => updateEjecucion(ejecucion.id, { estado: 'Completado' })}>
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          Completar
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => verDetalle(ejecucion)}>
+                              <Edit className="w-4 h-4 mr-2" />
+                              Ver Detalle
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateEjecucion(ejecucion.id, { estado: 'En Ejecución' })}>
+                              <Clock className="w-4 h-4 mr-2" />
+                              Iniciar Curso
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateEjecucion(ejecucion.id, { estado: 'Completado' })}>
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              Completar
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Diálogo de Detalle Completo */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>

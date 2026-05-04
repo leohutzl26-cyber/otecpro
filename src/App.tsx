@@ -192,7 +192,11 @@ function App() {
 
         {/* Menú */}
         <nav className="p-2 space-y-1">
-          {menuItems.map((item) => (
+          {menuItems.filter(item => {
+            // RBAC: Ocultar configuración si no es admin
+            if (item.id === 'configuracion' && session?.user?.email !== 'admin@otecpro.cl') return false;
+            return true;
+          }).map((item) => (
             <div key={item.id}>
               <button
                 onClick={() => {
@@ -221,7 +225,7 @@ function App() {
               
               {/* Submenú */}
               {sidebarOpen && item.subItems && submenuAbierto === item.id && (
-                <div className="ml-4 mt-1 space-y-1 border-l-2 border-[#2a4a73] pl-3">
+                <div className="ml-4 mt-1 space-y-1 border-l-2 border-sidebar-border/20 pl-3">
                   {item.subItems.map((sub) => (
                     <button
                       key={sub.id}
@@ -229,7 +233,7 @@ function App() {
                       className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
                         moduloActivo === sub.id 
                           ? 'text-[#84CC16] font-medium' 
-                          : 'text-slate-400 hover:text-white'
+                          : 'text-sidebar-primary-foreground/60 hover:text-sidebar-primary-foreground'
                       }`}
                     >
                       {sub.label}

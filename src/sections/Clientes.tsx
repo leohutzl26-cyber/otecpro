@@ -56,11 +56,26 @@ export default function Clientes({ store }: ClientesProps) {
     observaciones: ''
   });
 
+  const [paginaActual, setPaginaActual] = useState(1);
+  const itemsPorPagina = 12;
+
   const clientesFiltrados = clientes.filter(c => 
     c.razonSocial.toLowerCase().includes(busqueda.toLowerCase()) ||
     c.rut.includes(busqueda) ||
     c.giro.toLowerCase().includes(busqueda.toLowerCase())
   );
+
+  const totalPaginas = Math.ceil(clientesFiltrados.length / itemsPorPagina);
+  const clientesPaginados = clientesFiltrados.slice(
+    (paginaActual - 1) * itemsPorPagina, 
+    paginaActual * itemsPorPagina
+  );
+
+  // Resetear paginación al buscar
+  const handleBusqueda = (valor: string) => {
+    setBusqueda(valor);
+    setPaginaActual(1);
+  };
 
   const handleSubmit = () => {
     if (clienteSeleccionado) {
@@ -240,13 +255,13 @@ export default function Clientes({ store }: ClientesProps) {
           className="pl-10"
           placeholder="Buscar por RUT, razón social o giro..."
           value={busqueda}
-          onChange={e => setBusqueda(e.target.value)}
+          onChange={e => handleBusqueda(e.target.value)}
         />
       </div>
 
       {/* Lista de Clientes */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {clientesFiltrados.map((cliente) => (
+        {clientesPaginados.map((cliente) => (
           <Card key={cliente.id} className="hover:shadow-md transition-shadow">
             <CardContent className="p-4">
               <div className="flex items-start justify-between">
@@ -407,6 +422,28 @@ export default function Clientes({ store }: ClientesProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Paginación */}
+      {totalPaginas > 1 && (
+        <div className="flex justify-center items-center gap-2 mt-6">
+          <Button 
+            variant="outline" 
+            onClick={() => setPaginaActual(p => Math.max(1, p - 1))}
+            disabled={paginaActual === 1}
+          >
+            Anterior
+          </Button>
+          <span className="text-sm text-slate-500">
+            Página {paginaActual} de {totalPaginas}
+          </span>
+          <Button 
+            variant="outline" 
+            onClick={() => setPaginaActual(p => Math.min(totalPaginas, p + 1))}
+            disabled={paginaActual === totalPaginas}
+          >
+            Siguiente
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
