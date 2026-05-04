@@ -376,6 +376,7 @@ export default function Cotizaciones({ store }: CotizacionesProps) {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Búsqueda y Filtros */}
