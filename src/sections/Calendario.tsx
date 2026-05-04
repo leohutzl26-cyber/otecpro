@@ -69,7 +69,7 @@ export default function Calendario({ store }: CalendarioProps) {
               titulo: curso?.nombre,
               subtitulo: cliente?.razonSocial,
               hora: `${sesion.horaInicio} - ${sesion.horaFin}`,
-              color: e.estado === 'En Ejecución' ? '#10b981' : '#3b82f6',
+              color: e.estado === 'En Curso' ? '#10b981' : '#3b82f6',
               icon: BookOpen,
               ejecucion: e
             });

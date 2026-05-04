@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Building2, BellRing, Save, BadgeInfo, Users, ShieldAlert } from 'lucide-react';
+import { User, Building2, BellRing, Save, BadgeInfo, Users, ShieldAlert, FolderOpen, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ConfiguracionProps {
@@ -16,6 +16,7 @@ interface ConfiguracionProps {
 
 const Configuracion: React.FC<ConfiguracionProps> = ({ store }) => {
   const [loading, setLoading] = useState(false);
+  const [nuevaCategoria, setNuevaCategoria] = useState('');
 
   const handleSave = () => {
     setLoading(true);
@@ -45,7 +46,7 @@ const Configuracion: React.FC<ConfiguracionProps> = ({ store }) => {
       </div>
 
       <Tabs defaultValue="perfil" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 mb-8 h-auto p-1">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-7 mb-8 h-auto p-1">
           <TabsTrigger value="perfil" className="flex items-center gap-2 py-2">
             <User className="w-4 h-4" />
             <span className="hidden md:inline">Perfil</span>
@@ -61,6 +62,10 @@ const Configuracion: React.FC<ConfiguracionProps> = ({ store }) => {
           <TabsTrigger value="usuarios" className="flex items-center gap-2 py-2">
             <Users className="w-4 h-4" />
             <span className="hidden md:inline">Usuarios</span>
+          </TabsTrigger>
+          <TabsTrigger value="categorias" className="flex items-center gap-2 py-2">
+            <FolderOpen className="w-4 h-4" />
+            <span className="hidden md:inline">Categorías</span>
           </TabsTrigger>
           <TabsTrigger value="notificaciones" className="flex items-center gap-2 py-2">
             <BellRing className="w-4 h-4" />
@@ -188,6 +193,67 @@ const Configuracion: React.FC<ConfiguracionProps> = ({ store }) => {
               <div className="text-center p-8 border border-dashed rounded-lg bg-slate-50">
                 <p className="text-slate-500 mb-4">La gestión completa de usuarios y roles estará disponible próximamente.</p>
                 <Button variant="outline">Invitar Nuevo Usuario</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Categorías */}
+        <TabsContent value="categorias">
+          <Card>
+            <CardHeader>
+              <CardTitle>Categorías de Archivos</CardTitle>
+              <CardDescription>
+                Administra las categorías de los archivos adjuntos en las cotizaciones y ejecuciones.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-2 mb-4">
+                <Input 
+                  placeholder="Nombre de la nueva categoría..." 
+                  value={nuevaCategoria}
+                  onChange={(e) => setNuevaCategoria(e.target.value)}
+                />
+                <Button 
+                  onClick={() => {
+                    if(nuevaCategoria.trim()) {
+                      store.addCategoriaArchivo(nuevaCategoria.trim());
+                      setNuevaCategoria('');
+                      toast.success('Categoría añadida');
+                    }
+                  }}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Añadir
+                </Button>
+              </div>
+              <div className="border rounded-md divide-y">
+                {store.categoriasArchivos?.map((cat) => (
+                  <div key={cat.id} className="flex justify-between items-center p-3 hover:bg-slate-50">
+                    <div className="flex items-center gap-2">
+                      <FolderOpen className="w-4 h-4 text-slate-400" />
+                      <span className="font-medium text-slate-700">{cat.nombre}</span>
+                    </div>
+                    {cat.esPorDefecto ? (
+                      <span className="text-xs text-slate-400">Por defecto</span>
+                    ) : (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => {
+                          store.deleteCategoriaArchivo(cat.id);
+                          toast.success('Categoría eliminada');
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                {(!store.categoriasArchivos || store.categoriasArchivos.length === 0) && (
+                  <div className="p-4 text-center text-slate-500">No hay categorías configuradas.</div>
+                )}
               </div>
             </CardContent>
           </Card>

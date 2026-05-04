@@ -6,9 +6,22 @@
 
 export type ModalidadCurso = 'Presencial' | 'E-learning Sincrónico' | 'E-learning Asincrónico' | 'Auto-instrucción';
 
-export type EstadoCotizacion = 'Borrador' | 'Enviada' | 'Aprobada' | 'Rechazada';
+export type EstadoCotizacion = 'En Preparación' | 'Enviada' | 'Aceptada' | 'Cancelada';
 
-export type EstadoEjecucion = 'Planificado' | 'En Ejecución' | 'Completado' | 'Cancelado';
+export type EstadoEjecucion = 'Programado' | 'En Curso' | 'Terminado' | 'Anulado' | 'Facturado' | 'Pagado';
+
+export interface CategoriaArchivo {
+  id: string;
+  nombre: string;
+  esPorDefecto?: boolean;
+}
+
+export interface ArchivoBase {
+  id: string;
+  url: string;
+  nombre: string;
+  categoriaId: string;
+}
 
 export type EstadoDocumentoSAG = 'Pendiente' | 'Vencido' | 'Valido' | 'No Aplica';
 
@@ -121,13 +134,16 @@ export interface Participante {
 
 export interface Ejecucion {
   id: string;
-  cursoId: string;
+  codigoUnico: string;
+  cursoId?: string;
   curso?: Curso;
-  clienteId: string;
+  clienteId?: string;
   cliente?: Cliente;
   codigoSence?: string;
-  idAcciones: string[];
+  idAcciones: string[]; // Retrocompatibilidad
+  idAccionSence?: string; // Nuevo campo
   estado: EstadoEjecucion;
+  lugaresEjecucion?: string;
   configuracion: {
     modalidad: ModalidadCurso;
     totalHoras: number;
@@ -135,7 +151,7 @@ export interface Ejecucion {
     lugar?: string;
     urlPlataforma?: string;
   };
-  relatorId: string;
+  relatorId?: string;
   relator?: Relator;
   participantes: Participante[];
   fechaInicio: string;
@@ -144,6 +160,15 @@ export interface Ejecucion {
   costosDirectosAsociados: string[];
   cotizacionId?: string;
   observaciones?: string;
+  
+  // Novedades financieras y archivos
+  financiero: {
+    ordenCompra?: string;
+    valor: number;
+    formaPago?: string;
+    fechaPago?: string;
+  };
+  archivosAdjuntos: ArchivoBase[];
 }
 
 // --- COMERCIAL ---
@@ -159,21 +184,26 @@ export interface ItemCotizacion {
 
 export interface Cotizacion {
   id: string;
-  numero: string;
+  codigoUnico: string; // Correlativo
+  estado: EstadoCotizacion;
+  fechaPropuesta: string;
+  nombre: string;
   clienteId: string;
   cliente?: Cliente;
-  contactoId?: string;
-  fecha: string;
-  vigenciaDias: number;
-  items: ItemCotizacion[];
-  subtotal: number;
-  iva: number;
-  total: number;
-  estado: EstadoCotizacion;
-  ejecutivoId?: string;
-  observaciones?: string;
-  fechaAprobacion?: string;
-  ejecucionId?: string;
+  validezPropuesta: string;
+  perteneceCatalogo: boolean;
+  cursoId?: string; // Si perteneceCatalogo es true
+  descripcion: string;
+  fechaTentativa: string;
+  precio: number;
+  archivosAdjuntos: ArchivoBase[];
+
+  // Campos legacy mantenidos por retrocompatibilidad temporal
+  numero?: string;
+  items?: ItemCotizacion[];
+  subtotal?: number;
+  iva?: number;
+  total?: number;
 }
 
 // --- FINANZAS ---
@@ -300,4 +330,5 @@ export interface ConfiguracionOTEC {
     codigoOtec: string;
     vigenciaColinesterasaDias: number;
   };
+  categoriasArchivos: CategoriaArchivo[];
 }

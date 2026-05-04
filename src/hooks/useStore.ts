@@ -18,6 +18,9 @@ export interface StoreState {
   cotizaciones: Cotizacion[];
   transacciones: Transaccion[];
   alertas: Alerta[];
+  categoriasArchivos: import('@/types').CategoriaArchivo[];
+  addCategoriaArchivo: (nombre: string) => void;
+  deleteCategoriaArchivo: (id: string) => void;
   isLoading: boolean;
 
   initData: () => Promise<void>;
@@ -41,7 +44,7 @@ export interface StoreState {
   deleteRelator: (id: string) => Promise<void>;
 
   // Cotizaciones
-  addCotizacion: (cotizacion: Omit<Cotizacion, 'id' | 'numero'>) => Promise<Cotizacion>;
+  addCotizacion: (cotizacion: Omit<Cotizacion, 'id' | 'codigoUnico'>) => Promise<Cotizacion>;
   updateCotizacion: (id: string, data: Partial<Cotizacion>) => Promise<void>;
   aprobarCotizacion: (cotizacionId: string) => Promise<Ejecucion | undefined>;
 
@@ -67,7 +70,7 @@ export interface StoreState {
   getCursoById: (id: string) => Curso | undefined;
   getRelatorById: (id: string) => Relator | undefined;
   getEjecucionById: (id: string) => (Ejecucion & { curso?: Curso; cliente?: Cliente; relator?: Relator }) | undefined;
-  getCotizacionById: (id: string) => (Cotizacion & { cliente?: Cliente; items: (ItemCotizacion & { curso?: Curso })[] }) | undefined;
+  getCotizacionById: (id: string) => (Cotizacion & { cliente?: Cliente; items?: (ItemCotizacion & { curso?: Curso })[] }) | undefined;
 
   getMargenCurso: (ejecucionId: string) => { ingresosNetos: number; gastosDirectos: number; margenBruto: number; margenPorcentaje: number };
   getEstadoResultados: (periodo: string) => { periodo: string; ingresosTotales: number; gastosDirectos: number; margenContribucion: number; gastosIndirectos: number; utilidadNeta: number; utilidadPorcentaje: number };
@@ -82,6 +85,7 @@ export const useStore = create<StoreState>((set, get) => ({
   cotizaciones: cotizacionesMock,
   transacciones: transaccionesMock,
   alertas: alertasMock,
+  categoriasArchivos: [{ id: 'cat1', nombre: 'Contratos', esPorDefecto: true }, { id: 'cat2', nombre: 'Facturas', esPorDefecto: true }, { id: 'cat3', nombre: 'Informes', esPorDefecto: true }],
   isLoading: false,
 
   initData: async () => {
@@ -278,8 +282,8 @@ export const useStore = create<StoreState>((set, get) => ({
   // --- COTIZACIONES ---
   addCotizacion: async (cotizacion) => {
     const { cotizaciones } = get();
-    const numero = `COT-2025-${String(cotizaciones.length + 1).padStart(3, '0')}`;
-    const newCotizacion = { ...cotizacion, id: `cot${Date.now()}`, numero } as Cotizacion;
+    const codigoUnico = `COT-2025-${String(cotizaciones.length + 1).padStart(3, '0')}`;
+    const newCotizacion = { ...cotizacion, id: `cot${Date.now()}`, codigoUnico, numero: codigoUnico } as Cotizacion;
     set(state => ({ cotizaciones: [...state.cotizaciones, newCotizacion] }));
     try {
       const { error } = await supabase.from('cotizaciones').insert(newCotizacion);
@@ -309,19 +313,30 @@ export const useStore = create<StoreState>((set, get) => ({
     const cotizacion = cotizaciones.find(c => c.id === cotizacionId);
     if (!cotizacion) return;
 
-    await updateCotizacion(cotizacionId, { estado: 'Aprobada', fechaAprobacion: new Date().toISOString().split('T')[0] });
+    await updateCotizacion(cotizacionId, { estado: 'Aceptada' });
 
     const newEjecucion: Ejecucion = {
-      id: `e${Date.now()}`, cursoId: cotizacion.items[0]?.cursoId || '',
-      clienteId: cotizacion.clienteId, idAcciones: [], estado: 'Planificado',
+      id: `e${Date.now()}`,
+      codigoUnico: `EJE-2025-${Date.now().toString().slice(-4)}`,
+      cursoId: cotizacion.cursoId || '',
+      clienteId: cotizacion.clienteId,
+      idAcciones: [],
+      estado: 'Programado',
       configuracion: { modalidad: 'Presencial', totalHoras: 0, sesiones: [] },
-      relatorId: '', participantes: [], fechaInicio: '', fechaTermino: '', horario: '', costosDirectosAsociados: [], cotizacionId: cotizacion.id
+      relatorId: '',
+      participantes: [],
+      fechaInicio: cotizacion.fechaTentativa || '',
+      fechaTermino: '',
+      horario: '',
+      costosDirectosAsociados: [],
+      cotizacionId: cotizacion.id,
+      archivosAdjuntos: [],
+      financiero: { valor: cotizacion.precio }
     };
 
     set(state => ({ ejecuciones: [...state.ejecuciones, newEjecucion] }));
     try {
       await supabase.from('ejecuciones').insert(newEjecucion);
-      await updateCotizacion(cotizacionId, { ejecucionId: newEjecucion.id });
     } catch (error: any) {
       // Simplificado rollback
       toast.error(`Error al generar la ejecución en el servidor: ${error.message || 'Desconocido'}`);
@@ -476,6 +491,9 @@ export const useStore = create<StoreState>((set, get) => ({
     }
   },
 
+  addCategoriaArchivo: (nombre) => set(s => ({ categoriasArchivos: [...s.categoriasArchivos, { id: `cat_${Date.now()}`, nombre }] })),
+  deleteCategoriaArchivo: (id) => set(s => ({ categoriasArchivos: s.categoriasArchivos.filter(c => c.id !== id) })),
+
   addAlerta: async (alerta) => {
     const newA = { ...alerta, id: `a${Date.now()}` } as Alerta;
     set(state => ({ alertas: [...state.alertas, newA] }));
@@ -495,7 +513,12 @@ export const useStore = create<StoreState>((set, get) => ({
     const { ejecuciones, getCursoById, getClienteById, getRelatorById } = get();
     const ejecucion = ejecuciones.find(e => e.id === id);
     if (ejecucion) {
-      return { ...ejecucion, curso: getCursoById(ejecucion.cursoId), cliente: getClienteById(ejecucion.clienteId), relator: getRelatorById(ejecucion.relatorId) };
+      return { 
+        ...ejecucion, 
+        curso: ejecucion.cursoId ? getCursoById(ejecucion.cursoId) : undefined, 
+        cliente: ejecucion.clienteId ? getClienteById(ejecucion.clienteId) : undefined, 
+        relator: ejecucion.relatorId ? getRelatorById(ejecucion.relatorId) : undefined 
+      };
     }
     return undefined;
   },
@@ -503,7 +526,11 @@ export const useStore = create<StoreState>((set, get) => ({
     const { cotizaciones, getClienteById, getCursoById } = get();
     const cotizacion = cotizaciones.find(c => c.id === id);
     if (cotizacion) {
-      return { ...cotizacion, cliente: getClienteById(cotizacion.clienteId), items: cotizacion.items.map(item => ({ ...item, curso: getCursoById(item.cursoId) })) };
+      return { 
+        ...cotizacion, 
+        cliente: getClienteById(cotizacion.clienteId), 
+        items: cotizacion.items?.map(item => ({ ...item, curso: getCursoById(item.cursoId) })) 
+      };
     }
     return undefined;
   },

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { 
   Search, Calendar, Users, X,
   Edit, MoreHorizontal, FileText, CheckCircle, AlertTriangle,
-  Clock, Upload, Download, GraduationCap
+  Clock, Upload, Download, GraduationCap, DollarSign, Paperclip, Plus
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,8 +30,7 @@ interface EjecucionesProps {
 
 export default function Ejecuciones({ store }: EjecucionesProps) {
   const { 
-    ejecuciones, cursos, clientes, relatores, updateEjecucion, 
-    getMargenCurso 
+    ejecuciones, cursos, clientes, relatores, cotizaciones, updateEjecucion
   } = store;
   
   const [busqueda, setBusqueda] = useState('');
@@ -42,8 +41,11 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
   const ejecucionesFiltradas = ejecuciones.filter(e => {
     const curso = cursos.find(c => c.id === e.cursoId);
     const cliente = clientes.find(c => c.id === e.clienteId);
+    const cotizacion = cotizaciones.find(c => c.id === e.cotizacionId);
+    const nombreServicio = curso?.nombre || cotizacion?.nombre || 'Servicio Personalizado';
     return (
-      curso?.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+      e.codigoUnico?.toLowerCase().includes(busqueda.toLowerCase()) ||
+      nombreServicio.toLowerCase().includes(busqueda.toLowerCase()) ||
       cliente?.razonSocial.toLowerCase().includes(busqueda.toLowerCase()) ||
       e.estado.toLowerCase().includes(busqueda.toLowerCase())
     );
@@ -57,12 +59,14 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
 
   const getEstadoBadge = (estado: EstadoEjecucion) => {
     const config = {
-      'Planificado': { class: 'bg-blue-500', icon: Calendar },
-      'En Ejecución': { class: 'bg-green-500', icon: Clock },
-      'Completado': { class: 'bg-slate-500', icon: CheckCircle },
-      'Cancelado': { class: 'bg-red-500', icon: X }
+      'Programado': { class: 'bg-blue-500', icon: Calendar },
+      'En Curso': { class: 'bg-green-500', icon: Clock },
+      'Terminado': { class: 'bg-slate-500', icon: CheckCircle },
+      'Anulado': { class: 'bg-red-500', icon: X },
+      'Facturado': { class: 'bg-amber-500', icon: FileText },
+      'Pagado': { class: 'bg-emerald-600', icon: DollarSign }
     };
-    const { class: className, icon: Icon } = config[estado];
+    const { class: className, icon: Icon } = config[estado] || { class: 'bg-gray-500', icon: FileText };
     return (
       <Badge className={className}>
         <Icon className="w-3 h-3 mr-1" />
@@ -72,10 +76,12 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
   };
 
   const calcularProgresoSAG = (participantes: Participante[]) => {
-    if (participantes.length === 0) return 0;
+    if (!participantes || participantes.length === 0) return 0;
     const completos = participantes.filter(p => p.estadoSAG === 'Completo').length;
     return Math.round((completos / participantes.length) * 100);
   };
+
+  const estadosKanban: EstadoEjecucion[] = ['Programado', 'En Curso', 'Terminado', 'Anulado', 'Facturado', 'Pagado'];
 
   return (
     <div className="space-y-6">
@@ -83,18 +89,17 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Ejecuciones de Cursos</h2>
-          <p className="text-slate-500">Gestiona cursos en ejecución y operación diaria</p>
+          <p className="text-slate-500">Gestiona cursos, logística y participantes</p>
         </div>
       </div>
 
-      {/* Tabs para cambiar entre Vista Lista y Tablero Kanban */}
       <Tabs defaultValue="kanban" className="w-full">
         <div className="flex justify-between items-center mb-4">
           <div className="relative w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
             <Input 
               className="pl-10"
-              placeholder="Buscar por curso, cliente..."
+              placeholder="Buscar por código, curso, cliente..."
               value={busqueda}
               onChange={e => setBusqueda(e.target.value)}
             />
@@ -107,11 +112,11 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
 
         {/* VISTA KANBAN */}
         <TabsContent value="kanban" className="mt-0">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
-            {(['Planificado', 'En Ejecución', 'Completado', 'Cancelado'] as EstadoEjecucion[]).map(estado => (
+          <div className="flex overflow-x-auto gap-4 pb-4 items-start snap-x">
+            {estadosKanban.map(estado => (
               <div 
                 key={estado} 
-                className="bg-slate-100 rounded-lg p-3 min-h-[500px]"
+                className="bg-slate-100 rounded-lg p-3 min-w-[300px] min-h-[500px] snap-center shrink-0"
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
                   const id = e.dataTransfer.getData("ejecucionId");
@@ -131,6 +136,9 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
                   {ejecucionesFiltradas.filter(e => e.estado === estado).map(ejecucion => {
                     const curso = cursos.find(c => c.id === ejecucion.cursoId);
                     const cliente = clientes.find(c => c.id === ejecucion.clienteId);
+                    const cotizacion = cotizaciones.find(c => c.id === ejecucion.cotizacionId);
+                    const nombreServicio = curso?.nombre || cotizacion?.nombre || 'Servicio Personalizado';
+
                     return (
                       <Card 
                         key={ejecucion.id} 
@@ -140,16 +148,18 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
                       >
                         <CardContent className="p-3">
                           <div className="flex justify-between items-start mb-2">
-                            <span className="text-xs font-semibold text-slate-500">{curso?.codigoSence || 'Sin SENCE'}</span>
+                            <span className="text-xs font-semibold text-slate-500">
+                              {ejecucion.codigoUnico || ejecucion.id}
+                            </span>
                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => verDetalle(ejecucion)}>
                               <MoreHorizontal className="w-3 h-3" />
                             </Button>
                           </div>
-                          <h4 className="text-sm font-bold leading-tight mb-1">{curso?.nombre}</h4>
+                          <h4 className="text-sm font-bold leading-tight mb-1">{nombreServicio}</h4>
                           <p className="text-xs text-slate-500 mb-3">{cliente?.razonSocial}</p>
                           <div className="flex items-center justify-between text-xs text-slate-500">
                             <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {ejecucion.fechaInicio?.slice(5) || 'TBD'}</span>
-                            <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {ejecucion.participantes.length}</span>
+                            <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {ejecucion.participantes?.length || 0}</span>
                           </div>
                         </CardContent>
                       </Card>
@@ -168,7 +178,9 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
               const curso = cursos.find(c => c.id === ejecucion.cursoId);
               const cliente = clientes.find(c => c.id === ejecucion.clienteId);
               const relator = relatores.find(r => r.id === ejecucion.relatorId);
-              const progresoSAG = calcularProgresoSAG(ejecucion.participantes);
+              const cotizacion = cotizaciones.find(c => c.id === ejecucion.cotizacionId);
+              const progresoSAG = calcularProgresoSAG(ejecucion.participantes || []);
+              const nombreServicio = curso?.nombre || cotizacion?.nombre || 'Servicio Personalizado';
 
               return (
                 <Card key={ejecucion.id} className="hover:shadow-md transition-shadow">
@@ -176,16 +188,15 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 flex-wrap">
+                          <span className="font-semibold text-slate-800">{ejecucion.codigoUnico || ejecucion.id}</span>
                           {getEstadoBadge(ejecucion.estado)}
-                          {curso?.esSAG && (
-                            <Badge className="bg-amber-500">SAG</Badge>
-                          )}
-                          {curso?.codigoSence && (
-                            <Badge variant="outline">SENCE {curso.codigoSence}</Badge>
+                          {curso?.esSAG && <Badge className="bg-amber-500">SAG</Badge>}
+                          {(ejecucion.idAccionSence || curso?.codigoSence) && (
+                            <Badge variant="outline">SENCE {ejecucion.idAccionSence || curso?.codigoSence}</Badge>
                           )}
                         </div>
                         
-                        <h3 className="font-semibold text-slate-800 mt-2">{curso?.nombre}</h3>
+                        <h3 className="font-semibold text-slate-800 mt-2">{nombreServicio}</h3>
                         <p className="text-sm text-slate-500">{cliente?.razonSocial}</p>
                         
                         <div className="flex items-center gap-4 mt-2 text-sm text-slate-600">
@@ -195,7 +206,7 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
                           </span>
                           <span className="flex items-center gap-1">
                             <Users className="w-4 h-4" />
-                            {ejecucion.participantes.length} participantes
+                            {ejecucion.participantes?.length || 0} participantes
                           </span>
                           <span className="flex items-center gap-1">
                             <GraduationCap className="w-4 h-4" />
@@ -234,13 +245,13 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
                               <Edit className="w-4 h-4 mr-2" />
                               Ver Detalle
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => updateEjecucion(ejecucion.id, { estado: 'En Ejecución' })}>
+                            <DropdownMenuItem onClick={() => updateEjecucion(ejecucion.id, { estado: 'En Curso' })}>
                               <Clock className="w-4 h-4 mr-2" />
                               Iniciar Curso
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => updateEjecucion(ejecucion.id, { estado: 'Completado' })}>
+                            <DropdownMenuItem onClick={() => updateEjecucion(ejecucion.id, { estado: 'Terminado' })}>
                               <CheckCircle className="w-4 h-4 mr-2" />
-                              Completar
+                              Terminar
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -263,10 +274,14 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
                 <div className="flex items-center justify-between">
                   <div>
                     <DialogTitle className="text-xl">
-                      {cursos.find(c => c.id === ejecucionSeleccionada.cursoId)?.nombre}
+                      {cursos.find(c => c.id === ejecucionSeleccionada.cursoId)?.nombre || 
+                       cotizaciones.find(c => c.id === ejecucionSeleccionada.cotizacionId)?.nombre || 
+                       'Servicio Personalizado'}
                     </DialogTitle>
                     <p className="text-slate-500 mt-1">
                       {clientes.find(c => c.id === ejecucionSeleccionada.clienteId)?.razonSocial}
+                      <span className="mx-2">•</span>
+                      Código: {ejecucionSeleccionada.codigoUnico || ejecucionSeleccionada.id}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -282,9 +297,9 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
                 <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="general">General</TabsTrigger>
                   <TabsTrigger value="participantes">
-                    Participantes ({ejecucionSeleccionada.participantes.length})
+                    Participantes ({ejecucionSeleccionada.participantes?.length || 0})
                   </TabsTrigger>
-                  <TabsTrigger value="documentos">Documentos</TabsTrigger>
+                  <TabsTrigger value="documentos">Archivos</TabsTrigger>
                   <TabsTrigger value="finanzas">Finanzas</TabsTrigger>
                 </TabsList>
 
@@ -297,11 +312,11 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span className="text-slate-500">Modalidad:</span>
-                            <span>{ejecucionSeleccionada.configuracion.modalidad}</span>
+                            <span>{ejecucionSeleccionada.configuracion?.modalidad || 'N/A'}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-slate-500">Horas:</span>
-                            <span>{ejecucionSeleccionada.configuracion.totalHoras} hrs</span>
+                            <span>{ejecucionSeleccionada.configuracion?.totalHoras || 0} hrs</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-slate-500">Horario:</span>
@@ -339,17 +354,19 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
                       <div className="p-4 bg-slate-50 rounded-lg">
                         <h4 className="font-medium text-slate-700 mb-3">Ubicación</h4>
                         <p className="text-sm">
-                          {ejecucionSeleccionada.configuracion.lugar || 
-                           ejecucionSeleccionada.configuracion.urlPlataforma || 
+                          {ejecucionSeleccionada.lugaresEjecucion || 
+                           ejecucionSeleccionada.configuracion?.lugar || 
+                           ejecucionSeleccionada.configuracion?.urlPlataforma || 
                            'No definido'}
                         </p>
                       </div>
 
-                      {ejecucionSeleccionada.idAcciones.length > 0 && (
+                      {(ejecucionSeleccionada.idAcciones?.length > 0 || ejecucionSeleccionada.idAccionSence) && (
                         <div className="p-4 bg-slate-50 rounded-lg">
-                          <h4 className="font-medium text-slate-700 mb-3">ID Acción SENCE</h4>
+                          <h4 className="font-medium text-slate-700 mb-3">SENCE</h4>
                           <div className="flex flex-wrap gap-2">
-                            {ejecucionSeleccionada.idAcciones.map((id, idx) => (
+                            {ejecucionSeleccionada.idAccionSence && <Badge variant="outline">{ejecucionSeleccionada.idAccionSence}</Badge>}
+                            {ejecucionSeleccionada.idAcciones?.map((id, idx) => (
                               <Badge key={idx} variant="outline">{id}</Badge>
                             ))}
                           </div>
@@ -362,7 +379,7 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
                   <div className="p-4 bg-slate-50 rounded-lg">
                     <h4 className="font-medium text-slate-700 mb-3">Sesiones Programadas</h4>
                     <div className="space-y-2">
-                      {ejecucionSeleccionada.configuracion.sesiones.map((sesion, idx) => (
+                      {ejecucionSeleccionada.configuracion?.sesiones?.map((sesion, idx) => (
                         <div key={idx} className="flex items-center justify-between p-2 bg-white rounded border">
                           <span className="font-medium">Sesión {idx + 1}</span>
                           <span className="text-sm text-slate-600">
@@ -370,7 +387,7 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
                           </span>
                         </div>
                       ))}
-                      {ejecucionSeleccionada.configuracion.sesiones.length === 0 && (
+                      {(!ejecucionSeleccionada.configuracion?.sesiones || ejecucionSeleccionada.configuracion.sesiones.length === 0) && (
                         <p className="text-slate-500 text-sm">No hay sesiones programadas</p>
                       )}
                     </div>
@@ -382,7 +399,7 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <h4 className="font-medium text-slate-700">
-                        Total: {ejecucionSeleccionada.participantes.length} participantes
+                        Total: {ejecucionSeleccionada.participantes?.length || 0} participantes
                       </h4>
                       <Button size="sm">
                         <Upload className="w-4 h-4 mr-2" />
@@ -390,7 +407,7 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
                       </Button>
                     </div>
 
-                    <div className="border rounded-lg">
+                    <div className="border rounded-lg overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead className="bg-slate-50">
                           <tr>
@@ -408,7 +425,7 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
                           </tr>
                         </thead>
                         <tbody className="divide-y">
-                          {ejecucionSeleccionada.participantes.map((participante) => (
+                          {(ejecucionSeleccionada.participantes || []).map((participante) => (
                             <tr key={participante.id} className="hover:bg-slate-50">
                               <td className="p-3">{participante.rut}</td>
                               <td className="p-3">
@@ -424,20 +441,20 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
                                 <>
                                   <td className="p-3 text-center">
                                     <StatusBadge 
-                                      status={participante.documentosSAG.colinesterasa.valido ? 'valido' : 
-                                             participante.documentosSAG.colinesterasa.url ? 'pendiente' : 'faltante'}
+                                      status={participante.documentosSAG?.colinesterasa?.valido ? 'valido' : 
+                                             participante.documentosSAG?.colinesterasa?.url ? 'pendiente' : 'faltante'}
                                     />
                                   </td>
                                   <td className="p-3 text-center">
                                     <StatusBadge 
-                                      status={participante.documentosSAG.certificadoMedico.valido ? 'valido' : 
-                                             participante.documentosSAG.certificadoMedico.url ? 'pendiente' : 'faltante'}
+                                      status={participante.documentosSAG?.certificadoMedico?.valido ? 'valido' : 
+                                             participante.documentosSAG?.certificadoMedico?.url ? 'pendiente' : 'faltante'}
                                     />
                                   </td>
                                   <td className="p-3 text-center">
                                     <StatusBadge 
-                                      status={participante.documentosSAG.poderSimple.valido ? 'valido' : 
-                                             participante.documentosSAG.poderSimple.url ? 'pendiente' : 'faltante'}
+                                      status={participante.documentosSAG?.poderSimple?.valido ? 'valido' : 
+                                             participante.documentosSAG?.poderSimple?.url ? 'pendiente' : 'faltante'}
                                     />
                                   </td>
                                 </>
@@ -448,7 +465,7 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
                                   participante.estadoSAG === 'Incompleto' ? 'bg-amber-500' :
                                   'bg-slate-500'
                                 }>
-                                  {participante.estadoSAG}
+                                  {participante.estadoSAG || 'N/A'}
                                 </Badge>
                               </td>
                             </tr>
@@ -459,150 +476,69 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
                   </div>
                 </TabsContent>
 
-                {/* Tab Documentos */}
+                {/* Tab Documentos (Archivos Adjuntos) */}
                 <TabsContent value="documentos">
-                  <div className="grid grid-cols-2 gap-4">
-                    <Card>
-                      <CardContent className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                            <FileText className="w-5 h-5 text-blue-600" />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-medium">Libro de Clases</h4>
-                            <p className="text-sm text-slate-500">Lista de asistencia con firmas</p>
-                          </div>
-                          <Button size="sm" variant="outline">
-                            <Download className="w-4 h-4 mr-1" />
-                            Descargar
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <h4 className="font-medium text-slate-700">Archivos Adjuntos de la Ejecución</h4>
+                      <Button size="sm" variant="outline">
+                        <Plus className="w-4 h-4 mr-1" />
+                        Añadir Archivo
+                      </Button>
+                    </div>
 
-                    <Card>
-                      <CardContent className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                            <CheckCircle className="w-5 h-5 text-green-600" />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-medium">Acta de Materiales</h4>
-                            <p className="text-sm text-slate-500">Entrega de manuales y materiales</p>
-                          </div>
-                          <Button size="sm" variant="outline">
-                            <Download className="w-4 h-4 mr-1" />
-                            Descargar
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardContent className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                            <GraduationCap className="w-5 h-5 text-purple-600" />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-medium">Diplomas</h4>
-                            <p className="text-sm text-slate-500">Generación masiva de diplomas</p>
-                          </div>
-                          <Button size="sm" variant="outline">
-                            <Download className="w-4 h-4 mr-1" />
-                            Descargar
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardContent className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-                            <FileText className="w-5 h-5 text-amber-600" />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-medium">Encuesta Satisfacción</h4>
-                            <p className="text-sm text-slate-500">Formato SENCE estándar</p>
-                          </div>
-                          <Button size="sm" variant="outline">
-                            <Download className="w-4 h-4 mr-1" />
-                            Descargar
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    {!ejecucionSeleccionada.archivosAdjuntos || ejecucionSeleccionada.archivosAdjuntos.length === 0 ? (
+                      <div className="text-center py-8 text-slate-500 bg-slate-50 rounded-lg border border-dashed">
+                        <Paperclip className="w-8 h-8 mx-auto mb-2 text-slate-400" />
+                        <p>No hay archivos adjuntos para esta ejecución.</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-4">
+                        {ejecucionSeleccionada.archivosAdjuntos.map(archivo => (
+                          <Card key={archivo.id}>
+                            <CardContent className="p-4 flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <FileText className="w-5 h-5 text-blue-600" />
+                                <div>
+                                  <h4 className="font-medium text-sm">{archivo.nombre}</h4>
+                                  <p className="text-xs text-slate-500">Categoría ID: {archivo.categoriaId}</p>
+                                </div>
+                              </div>
+                              <Button size="sm" variant="ghost" asChild>
+                                <a href={archivo.url} target="_blank" rel="noreferrer"><Download className="w-4 h-4" /></a>
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </TabsContent>
 
                 {/* Tab Finanzas */}
                 <TabsContent value="finanzas">
-                  {(() => {
-                    const margen = getMargenCurso(ejecucionSeleccionada.id);
-                    return (
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-3 gap-4">
-                          <div className="p-4 bg-green-50 rounded-lg">
-                            <p className="text-sm text-green-600">Ingresos Netos</p>
-                            <p className="text-2xl font-bold text-green-700">
-                              ${margen.ingresosNetos.toLocaleString('es-CL')}
-                            </p>
-                          </div>
-                          <div className="p-4 bg-red-50 rounded-lg">
-                            <p className="text-sm text-red-600">Gastos Directos</p>
-                            <p className="text-2xl font-bold text-red-700">
-                              ${margen.gastosDirectos.toLocaleString('es-CL')}
-                            </p>
-                          </div>
-                          <div className={`p-4 rounded-lg ${margen.margenBruto >= 0 ? 'bg-blue-50' : 'bg-amber-50'}`}>
-                            <p className={`text-sm ${margen.margenBruto >= 0 ? 'text-blue-600' : 'text-amber-600'}`}>
-                              Margen Bruto
-                            </p>
-                            <p className={`text-2xl font-bold ${margen.margenBruto >= 0 ? 'text-blue-700' : 'text-amber-700'}`}>
-                              ${margen.margenBruto.toLocaleString('es-CL')}
-                            </p>
-                            <p className={`text-sm ${margen.margenBruto >= 0 ? 'text-blue-600' : 'text-amber-600'}`}>
-                              {margen.margenPorcentaje.toFixed(1)}%
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="border rounded-lg">
-                          <table className="w-full text-sm">
-                            <thead className="bg-slate-50">
-                              <tr>
-                                <th className="text-left p-3">Documento</th>
-                                <th className="text-left p-3">Categoría</th>
-                                <th className="text-right p-3">Monto</th>
-                                <th className="text-center p-3">Estado</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y">
-                              {store.transacciones
-                                .filter(t => t.idEjecucion === ejecucionSeleccionada.id)
-                                .map((t) => (
-                                  <tr key={t.id}>
-                                    <td className="p-3">{t.metadatos.nroDocumento}</td>
-                                    <td className="p-3">{t.categoria}</td>
-                                    <td className="p-3 text-right">
-                                      <span className={t.tipo === 'Ingreso' ? 'text-green-600' : 'text-red-600'}>
-                                        {t.tipo === 'Ingreso' ? '+' : '-'}${t.monto.total.toLocaleString('es-CL')}
-                                      </span>
-                                    </td>
-                                    <td className="p-3 text-center">
-                                      <Badge className={t.tracking.pagado ? 'bg-green-500' : 'bg-amber-500'}>
-                                        {t.tracking.pagado ? 'Pagado' : 'Pendiente'}
-                                      </Badge>
-                                    </td>
-                                  </tr>
-                                ))}
-                            </tbody>
-                          </table>
-                        </div>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 bg-slate-50 rounded-lg border">
+                        <h4 className="text-sm font-semibold text-slate-700 mb-2">Orden de Compra</h4>
+                        <p className="text-lg">{ejecucionSeleccionada.financiero?.ordenCompra || 'No registrada'}</p>
                       </div>
-                    );
-                  })()}
+                      <div className="p-4 bg-slate-50 rounded-lg border">
+                        <h4 className="text-sm font-semibold text-slate-700 mb-2">Valor Acordado</h4>
+                        <p className="text-2xl font-bold text-blue-700">
+                          ${(ejecucionSeleccionada.financiero?.valor || 0).toLocaleString('es-CL')}
+                        </p>
+                      </div>
+                      <div className="p-4 bg-slate-50 rounded-lg border">
+                        <h4 className="text-sm font-semibold text-slate-700 mb-2">Forma de Pago</h4>
+                        <p>{ejecucionSeleccionada.financiero?.formaPago || 'No definida'}</p>
+                      </div>
+                      <div className="p-4 bg-slate-50 rounded-lg border">
+                        <h4 className="text-sm font-semibold text-slate-700 mb-2">Fecha de Pago</h4>
+                        <p>{ejecucionSeleccionada.financiero?.fechaPago || 'No definida'}</p>
+                      </div>
+                    </div>
+                  </div>
                 </TabsContent>
               </Tabs>
             </>

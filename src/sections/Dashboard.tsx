@@ -28,8 +28,8 @@ export default function Dashboard({ store, onNavigate }: DashboardProps) {
   } = store;
 
   // KPIs
-  const cursosActivos = ejecuciones.filter(e => e.estado === 'En Ejecución').length;
-  const cursosPlanificados = ejecuciones.filter(e => e.estado === 'Planificado').length;
+  const cursosActivos = ejecuciones.filter(e => e.estado === 'En Curso').length;
+  const cursosPlanificados = ejecuciones.filter(e => e.estado === 'Programado').length;
   
   const ingresosMes = transacciones
     .filter(t => t.tipo === 'Ingreso' && t.tracking.pagado)
@@ -57,7 +57,7 @@ export default function Dashboard({ store, onNavigate }: DashboardProps) {
 
   // Ejecuciones próximas
   const ejecucionesProximas = ejecuciones
-    .filter(e => e.estado === 'Planificado' || e.estado === 'En Ejecución')
+    .filter(e => e.estado === 'Programado' || e.estado === 'En Curso')
     .slice(0, 5);
 
   return (
@@ -281,8 +281,8 @@ export default function Dashboard({ store, onNavigate }: DashboardProps) {
                     <div>
                       <div className="flex items-center gap-2">
                         <Badge className={`${
-                          ejecucion.estado === 'En Ejecución' ? 'bg-[#84CC16]' :
-                          ejecucion.estado === 'Planificado' ? 'bg-[#1E3A5F]' :
+                          ejecucion.estado === 'En Curso' ? 'bg-[#84CC16]' :
+                          ejecucion.estado === 'Programado' ? 'bg-[#1E3A5F]' :
                           'bg-slate-500'
                         }`}>
                           {ejecucion.estado}
@@ -347,7 +347,7 @@ export default function Dashboard({ store, onNavigate }: DashboardProps) {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm text-slate-500">Borradores</span>
-                <span className="font-medium">{cotizaciones.filter(c => c.estado === 'Borrador').length}</span>
+                <span className="font-medium">{cotizaciones.filter(c => c.estado === 'En Preparación').length}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-slate-500">Enviadas</span>
@@ -356,7 +356,7 @@ export default function Dashboard({ store, onNavigate }: DashboardProps) {
               <div className="flex justify-between">
                 <span className="text-sm text-slate-500">Aprobadas</span>
                 <span className="font-medium text-green-600">
-                  {cotizaciones.filter(c => c.estado === 'Aprobada').length}
+                  {cotizaciones.filter(c => c.estado === 'Aceptada').length}
                 </span>
               </div>
             </div>

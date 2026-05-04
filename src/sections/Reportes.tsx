@@ -42,7 +42,7 @@ export default function Reportes({ store }: ReportesProps) {
 
   // Márgenes por curso
   const margenesCursos = ejecuciones
-    .filter(e => e.estado === 'Completado' || e.estado === 'En Ejecución')
+    .filter(e => e.estado === 'Terminado' || e.estado === 'En Curso')
     .map(e => {
       const margen = getMargenCurso(e.id);
       const curso = cursos.find(c => c.id === e.cursoId);

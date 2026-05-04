@@ -399,8 +399,8 @@ export default function Relatores({ store }: RelatoresProps) {
                                 </div>
                               </div>
                               <Badge className={
-                                ejecucion.estado === 'Completado' ? 'bg-green-500' :
-                                ejecucion.estado === 'En Ejecución' ? 'bg-blue-500' :
+                                ejecucion.estado === 'Terminado' ? 'bg-green-500' :
+                                ejecucion.estado === 'En Curso' ? 'bg-blue-500' :
                                 'bg-slate-500'
                               }>
                                 {ejecucion.estado}
