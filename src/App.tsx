@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Users, BookOpen, GraduationCap, 
   DollarSign, Calendar, BarChart3, Settings, Menu,
-  X, Bell, User, LogOut, ChevronDown, Briefcase
+  X, Bell, User, LogOut, ChevronDown, Briefcase, FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -46,15 +46,8 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { 
-    id: 'clientes', 
-    label: 'Comercial', 
-    icon: Briefcase,
-    subItems: [
-      { id: 'clientes', label: 'Clientes' },
-      { id: 'cotizaciones', label: 'Cotizaciones' }
-    ]
-  },
+  { id: 'clientes', label: 'Clientes', icon: Briefcase },
+  { id: 'cotizaciones', label: 'Cotizaciones', icon: FileText },
   { id: 'cursos', label: 'Catálogo de Cursos', icon: BookOpen },
   { id: 'ejecuciones', label: 'Ejecuciones', icon: GraduationCap },
   { id: 'relatores', label: 'Relatores', icon: Users },
