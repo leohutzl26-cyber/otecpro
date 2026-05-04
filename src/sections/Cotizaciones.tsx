@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { 
   Search, Plus, FileText, Send, CheckCircle, XCircle, 
   Edit, Trash2, MoreHorizontal, Calendar,
-  DollarSign, Users
+  DollarSign, Users, Download
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -58,6 +58,32 @@ export default function Cotizaciones({ store }: CotizacionesProps) {
     c.cliente?.razonSocial.toLowerCase().includes(busqueda.toLowerCase()) ||
     c.estado.toLowerCase().includes(busqueda.toLowerCase())
   );
+
+  const exportarCSV = () => {
+    const encabezados = ['Numero', 'Cliente', 'RUT', 'Fecha', 'Estado', 'Subtotal', 'IVA', 'Total', 'Vigencia(dias)'];
+    const filas = cotizacionesFiltradas.map(c => [
+      c.numero,
+      `"${c.cliente?.razonSocial || ''}"`,
+      c.cliente?.rut || '',
+      c.fecha,
+      c.estado,
+      c.subtotal,
+      c.iva,
+      c.total,
+      c.vigenciaDias
+    ]);
+    
+    const csvContent = "data:text/csv;charset=utf-8," + 
+      [encabezados.join(','), ...filas.map(e => e.join(','))].join('\n');
+      
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `cotizaciones_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const calcularTotales = (items: ItemCotizacion[]) => {
     const subtotal = items.reduce((sum, item) => item.subtotal + sum, 0);
@@ -176,13 +202,18 @@ export default function Cotizaciones({ store }: CotizacionesProps) {
           <h2 className="text-2xl font-bold text-slate-800">Gestor de Cotizaciones</h2>
           <p className="text-slate-500">Crea y gestiona propuestas comerciales</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="w-4 h-4 mr-2" />
-              Nueva Cotización
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={exportarCSV}>
+            <Download className="w-4 h-4 mr-2" />
+            Exportar CSV
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={resetForm}>
+                <Plus className="w-4 h-4 mr-2" />
+                Nueva Cotización
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Users, BookOpen, GraduationCap, 
-  DollarSign, Calendar, BarChart3, Settings, Menu, 
-  X, Bell, User, LogOut, ChevronDown, Briefcase
+  DollarSign, Calendar, BarChart3, Settings, Menu,
+  X, Bell, User, LogOut, ChevronDown, Briefcase, Moon, Sun
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Toaster } from '@/components/ui/sonner';
 import { useStore } from '@/hooks/useStore';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/components/theme-provider';
 import Login from '@/sections/Login';
 
 // Módulos
@@ -80,6 +81,7 @@ function App() {
 
   const store = useStore();
   const { alertas, dismissAlerta, initData } = store;
+  const { theme, setTheme } = useTheme();
 
   // Verificar sesión activa y cargar datos
   useEffect(() => {
@@ -91,7 +93,7 @@ function App() {
     });
 
     const {
-      data: { subscription },
+      data: { subscription: authSub },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (session) {
@@ -99,7 +101,19 @@ function App() {
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Suscripción a Supabase Realtime (Cualquier cambio en la base de datos actualiza el store en vivo)
+    const realtimeSub = supabase
+      .channel('public-db-changes')
+      .on('postgres_changes', { event: '*', schema: 'public' }, () => {
+        // Refrescar los datos silenciosamente cuando haya cambios en otro cliente
+        initData();
+      })
+      .subscribe();
+
+    return () => {
+      authSub.unsubscribe();
+      supabase.removeChannel(realtimeSub);
+    };
   }, [initData]);
   
   const alertasPendientes = alertas.filter(a => a.prioridad === 'Alta').length;
@@ -144,15 +158,15 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-background text-foreground flex">
       {/* Sidebar */}
       <aside 
-        className={`fixed inset-y-0 left-0 z-50 bg-[#1E3A5F] text-white transition-all duration-300 ${
+        className={`fixed inset-y-0 left-0 z-50 bg-sidebar-primary text-sidebar-primary-foreground transition-all duration-300 ${
           sidebarOpen ? 'w-64' : 'w-16'
         }`}
       >
         {/* Logo */}
-        <div className="h-20 flex items-center justify-between px-4 border-b border-[#2a4a73]">
+        <div className="h-20 flex items-center justify-between px-4 border-b border-sidebar-border/20">
           {sidebarOpen ? (
             <div className="flex items-center gap-3">
               <img 
@@ -190,8 +204,8 @@ function App() {
                 }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                   moduloActivo === item.id 
-                    ? 'bg-[#84CC16] text-[#1E3A5F] font-semibold' 
-                    : 'text-slate-300 hover:bg-[#2a4a73] hover:text-white'
+                    ? 'bg-[#84CC16] text-sidebar-primary font-semibold' 
+                    : 'text-sidebar-primary-foreground/80 hover:bg-sidebar-primary-foreground/10 hover:text-sidebar-primary-foreground'
                 } ${!sidebarOpen && 'justify-center'}`}
               >
                 <item.icon className="w-5 h-5 flex-shrink-0" />
@@ -238,14 +252,22 @@ function App() {
       {/* Contenido Principal */}
       <main className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-16'}`}>
         {/* Header */}
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 sticky top-0 z-40">
+        <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6 sticky top-0 z-40">
           <div>
-            <h1 className="text-xl font-semibold text-slate-800">
+            <h1 className="text-xl font-semibold text-foreground">
               {menuItems.find(m => m.id === moduloActivo)?.label || 'Dashboard'}
             </h1>
           </div>
 
           <div className="flex items-center gap-4">
+            {/* Dark Mode Toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            >
+              {theme === 'dark' ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-slate-600" />}
+            </Button>
             {/* Notificaciones */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
