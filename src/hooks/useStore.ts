@@ -19,8 +19,8 @@ export interface StoreState {
   transacciones: Transaccion[];
   alertas: Alerta[];
   categoriasArchivos: import('@/types').CategoriaArchivo[];
-  addCategoriaArchivo: (nombre: string) => void;
-  deleteCategoriaArchivo: (id: string) => void;
+  addCategoriaArchivo: (nombre: string) => Promise<void>;
+  deleteCategoriaArchivo: (id: string) => Promise<void>;
   isLoading: boolean;
 
   initData: () => Promise<void>;
@@ -85,7 +85,7 @@ export const useStore = create<StoreState>((set, get) => ({
   cotizaciones: cotizacionesMock,
   transacciones: transaccionesMock,
   alertas: alertasMock,
-  categoriasArchivos: [{ id: 'cat1', nombre: 'Contratos', esPorDefecto: true }, { id: 'cat2', nombre: 'Facturas', esPorDefecto: true }, { id: 'cat3', nombre: 'Informes', esPorDefecto: true }],
+  categoriasArchivos: [],
   isLoading: false,
 
   initData: async () => {
@@ -93,7 +93,7 @@ export const useStore = create<StoreState>((set, get) => ({
     try {
       const [
         { data: cData }, { data: curData }, { data: rData }, 
-        { data: eData }, { data: cotData }, { data: tData }, { data: aData }
+        { data: eData }, { data: cotData }, { data: tData }, { data: aData }, { data: catData }
       ] = await Promise.all([
         supabase.from('clientes').select('*'),
         supabase.from('cursos').select('*'),
@@ -102,6 +102,7 @@ export const useStore = create<StoreState>((set, get) => ({
         supabase.from('cotizaciones').select('*'),
         supabase.from('transacciones').select('*'),
         supabase.from('alertas').select('*'),
+        supabase.from('categorias_archivos').select('*'),
       ]);
 
       set(state => ({
@@ -112,6 +113,7 @@ export const useStore = create<StoreState>((set, get) => ({
         cotizaciones: cotData && cotData.length > 0 ? cotData as Cotizacion[] : state.cotizaciones,
         transacciones: tData && tData.length > 0 ? tData as Transaccion[] : state.transacciones,
         alertas: aData && aData.length > 0 ? aData as Alerta[] : state.alertas,
+        categoriasArchivos: catData && catData.length > 0 ? catData as import('@/types').CategoriaArchivo[] : state.categoriasArchivos,
       }));
     } catch (error) {
       console.error('Error cargando datos de Supabase:', error);
@@ -289,8 +291,9 @@ export const useStore = create<StoreState>((set, get) => ({
       const { error } = await supabase.from('cotizaciones').insert(newCotizacion);
       if (error) throw error;
     } catch (error: any) {
-      console.warn('Error guardando en Supabase:', error);
-      toast.warning('Guardado localmente. La BD necesita actualización.');
+      set(state => ({ cotizaciones: state.cotizaciones.filter(c => c.id !== newCotizacion.id) }));
+      toast.error(`Error al crear: ${error.message || 'Desconocido'}`);
+      throw error;
     }
     return newCotizacion;
   },
@@ -303,8 +306,9 @@ export const useStore = create<StoreState>((set, get) => ({
       const { error } = await supabase.from('cotizaciones').update(data).eq('id', id);
       if (error) throw error;
     } catch (error: any) {
-      console.warn('Error guardando en Supabase:', error);
-      toast.warning('Actualizado localmente. La BD necesita actualización.');
+      set(state => ({ cotizaciones: state.cotizaciones.map(c => c.id === id ? old : c) }));
+      toast.error(`Error al actualizar: ${error.message || 'Desconocido'}`);
+      throw error;
     }
   },
 
@@ -339,8 +343,9 @@ export const useStore = create<StoreState>((set, get) => ({
       const { error } = await supabase.from('ejecuciones').insert(newEjecucion);
       if (error) throw error;
     } catch (error: any) {
-      console.warn('Error guardando en Supabase:', error);
-      toast.warning('Ejecución guardada localmente.');
+      set(state => ({ ejecuciones: state.ejecuciones.filter(e => e.id !== newEjecucion.id) }));
+      toast.error(`Error al generar ejecución: ${error.message || 'Desconocido'}`);
+      throw error;
     }
     return newEjecucion;
   },
@@ -352,9 +357,10 @@ export const useStore = create<StoreState>((set, get) => ({
     try {
       const { error } = await supabase.from('ejecuciones').insert(newE);
       if (error) throw error;
-    } catch (error) {
-      console.warn('Error guardando en Supabase:', error);
-      toast.warning('Ejecución guardada localmente.');
+    } catch (error: any) {
+      set(state => ({ ejecuciones: state.ejecuciones.filter(e => e.id !== newE.id) }));
+      toast.error(`Error al guardar ejecución: ${error.message || 'Desconocido'}`);
+      throw error;
     }
     return newE;
   },
@@ -492,8 +498,28 @@ export const useStore = create<StoreState>((set, get) => ({
     }
   },
 
-  addCategoriaArchivo: (nombre) => set(s => ({ categoriasArchivos: [...s.categoriasArchivos, { id: `cat_${Date.now()}`, nombre }] })),
-  deleteCategoriaArchivo: (id) => set(s => ({ categoriasArchivos: s.categoriasArchivos.filter(c => c.id !== id) })),
+  addCategoriaArchivo: async (nombre) => {
+    const nueva = { id: `cat_${Date.now()}`, nombre, esPorDefecto: false };
+    set(s => ({ categoriasArchivos: [...s.categoriasArchivos, nueva] }));
+    try {
+      const { error } = await supabase.from('categorias_archivos').insert(nueva);
+      if (error) throw error;
+    } catch (e) {
+      set(s => ({ categoriasArchivos: s.categoriasArchivos.filter(c => c.id !== nueva.id) }));
+      toast.error('Error al guardar categoría en BD');
+    }
+  },
+  deleteCategoriaArchivo: async (id) => {
+    const old = get().categoriasArchivos;
+    set(s => ({ categoriasArchivos: s.categoriasArchivos.filter(c => c.id !== id) }));
+    try {
+      const { error } = await supabase.from('categorias_archivos').delete().eq('id', id);
+      if (error) throw error;
+    } catch (e) {
+      set({ categoriasArchivos: old });
+      toast.error('Error al eliminar categoría en BD');
+    }
+  },
 
   addAlerta: async (alerta) => {
     const newA = { ...alerta, id: `a${Date.now()}` } as Alerta;
