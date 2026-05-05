@@ -840,6 +840,7 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
                               }}
                             />
                           </td>
+                          <td className="p-1">
                             <Input 
                               className="h-8 text-xs" 
                               value={s.apellidoPaterno} 
