@@ -20,17 +20,19 @@ export default function Alumnos({ store }: AlumnosProps) {
 
   const alumnosFiltrados = alumnos.filter(a => 
     a.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-    a.apellido.toLowerCase().includes(busqueda.toLowerCase()) ||
+    a.apellidoPaterno.toLowerCase().includes(busqueda.toLowerCase()) ||
+    a.apellidoMaterno.toLowerCase().includes(busqueda.toLowerCase()) ||
     a.rut.toLowerCase().includes(busqueda.toLowerCase()) ||
     a.cursoNombre?.toLowerCase().includes(busqueda.toLowerCase())
   );
 
   const exportarCSV = () => {
-    const encabezados = ['RUT', 'Nombre', 'Apellido', 'Email', 'Teléfono', 'Curso', 'Código Ejecución'];
+    const encabezados = ['RUT', 'Nombre', 'Apellido Paterno', 'Apellido Materno', 'Email', 'Teléfono', 'Curso', 'Código Ejecución'];
     const filas = alumnosFiltrados.map(a => [
       a.rut,
       `"${a.nombre}"`,
-      `"${a.apellido}"`,
+      `"${a.apellidoPaterno}"`,
+      `"${a.apellidoMaterno}"`,
       a.email || '',
       a.telefono || '',
       `"${a.cursoNombre}"`,
@@ -86,7 +88,9 @@ export default function Alumnos({ store }: AlumnosProps) {
               <thead className="bg-slate-50 text-slate-600 font-medium border-b">
                 <tr>
                   <th className="px-4 py-3">RUT</th>
-                  <th className="px-4 py-3">Nombre Completo</th>
+                  <th className="px-4 py-3">Nombre</th>
+                  <th className="px-4 py-3">Ap. Paterno</th>
+                  <th className="px-4 py-3">Ap. Materno</th>
                   <th className="px-4 py-3">Contacto</th>
                   <th className="px-4 py-3">Curso Asociado</th>
                   <th className="px-4 py-3">Ejecución</th>
@@ -96,7 +100,7 @@ export default function Alumnos({ store }: AlumnosProps) {
               <tbody className="divide-y divide-slate-100">
                 {alumnosFiltrados.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                    <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
                       No se encontraron alumnos con los criterios de búsqueda.
                     </td>
                   </tr>
@@ -105,7 +109,13 @@ export default function Alumnos({ store }: AlumnosProps) {
                     <tr key={`${alumno.id}-${idx}`} className="hover:bg-slate-50/50">
                       <td className="px-4 py-3 font-medium text-slate-700">{alumno.rut}</td>
                       <td className="px-4 py-3">
-                        {alumno.nombre} {alumno.apellido}
+                        {alumno.nombre}
+                      </td>
+                      <td className="px-4 py-3">
+                        {alumno.apellidoPaterno}
+                      </td>
+                      <td className="px-4 py-3">
+                        {alumno.apellidoMaterno}
                       </td>
                       <td className="px-4 py-3">
                         <div className="text-xs text-slate-500">{alumno.email || 'Sin email'}</div>

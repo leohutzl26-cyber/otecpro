@@ -116,7 +116,8 @@ export interface Participante {
   id: string;
   rut: string;
   nombre: string;
-  apellido: string;
+  apellidoPaterno: string;
+  apellidoMaterno: string;
   email?: string;
   telefono?: string;
   nivelEducacional?: string;

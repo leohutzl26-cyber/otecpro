@@ -103,7 +103,8 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
         id: `p${Date.now()}-${i}`,
         rut: '',
         nombre: `Alumno ${i+1}`,
-        apellido: '',
+        apellidoPaterno: '',
+        apellidoMaterno: '',
         asistenciaProgreso: 0,
         estadoSAG: 'No Aplica',
         documentosSAG: {
@@ -537,7 +538,7 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
                             <tr key={participante.id} className="hover:bg-slate-50">
                               <td className="p-3">{participante.rut}</td>
                               <td className="p-3">
-                                {participante.nombre} {participante.apellido}
+                                {participante.nombre} {participante.apellidoPaterno} {participante.apellidoMaterno}
                               </td>
                               <td className="p-3 text-center">
                                 <div className="flex items-center justify-center gap-2">
@@ -809,7 +810,8 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
                       <tr>
                         <th className="p-2 text-left">RUT</th>
                         <th className="p-2 text-left">Nombre</th>
-                        <th className="p-2 text-left">Apellido</th>
+                        <th className="p-2 text-left">Ap. Paterno</th>
+                        <th className="p-2 text-left">Ap. Materno</th>
                         <th className="p-2 text-left">Email</th>
                       </tr>
                     </thead>
@@ -838,13 +840,23 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
                               }}
                             />
                           </td>
+                            <Input 
+                              className="h-8 text-xs" 
+                              value={s.apellidoPaterno} 
+                              onChange={(e) => {
+                                const newS = [...extractedStudents];
+                                newS[i].apellidoPaterno = e.target.value;
+                                setExtractedStudents(newS);
+                              }}
+                            />
+                          </td>
                           <td className="p-1">
                             <Input 
                               className="h-8 text-xs" 
-                              value={s.apellido} 
+                              value={s.apellidoMaterno} 
                               onChange={(e) => {
                                 const newS = [...extractedStudents];
-                                newS[i].apellido = e.target.value;
+                                newS[i].apellidoMaterno = e.target.value;
                                 setExtractedStudents(newS);
                               }}
                             />

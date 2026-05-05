@@ -8,7 +8,8 @@ const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 export interface ExtractedParticipante {
   rut: string;
   nombre: string;
-  apellido: string;
+  apellidoPaterno: string;
+  apellidoMaterno: string;
   email: string;
   telefono: string;
 }
@@ -21,10 +22,19 @@ INSTRUCCIONES ESTRICTAS:
 2. Devuelve ÚNICAMENTE un arreglo JSON válido, sin texto adicional, sin explicaciones, sin bloques de código markdown.
 3. Cada elemento del arreglo debe tener exactamente estas propiedades (usa string vacío "" si no encuentras el dato):
    - rut: RUT chileno (ej: "12.345.678-9"), o "" si no aparece
-   - nombre: primer nombre o nombres de pila
-   - apellido: apellido(s) paterno y materno
+   - nombre: nombres de pila (ej: "Juan Carlos")
+   - apellidoPaterno: primer apellido (ej: "Pérez")
+   - apellidoMaterno: segundo apellido (ej: "González"), o "" si no aparece
    - email: correo electrónico, o ""
    - telefono: número de teléfono, o ""
+
+REGLAS PARA APELLIDOS:
+- Si ves "Juan Pérez González", nombre="Juan", apellidoPaterno="Pérez", apellidoMaterno="González"
+- Si ves "María Fernanda López Soto", nombre="María Fernanda", apellidoPaterno="López", apellidoMaterno="Soto"
+- Si solo hay un apellido, ponlo en apellidoPaterno y deja apellidoMaterno vacío ""
+
+EJEMPLO de respuesta válida:
+[{"rut":"12.345.678-9","nombre":"Juan Carlos","apellidoPaterno":"Pérez","apellidoMaterno":"González","email":"juan@empresa.cl","telefono":""}]
 
 Si no encuentras ningún participante devuelve exactamente: []
 Tu respuesta debe empezar directamente con [ y terminar con ]. Nada más.`;

@@ -115,7 +115,8 @@ export const useStore = create<StoreState>((set, get) => ({
         id: p.id,
         rut: p.rut,
         nombre: p.nombre,
-        apellido: p.apellido,
+        apellidoPaterno: p.apellido,
+        apellidoMaterno: p.apellido_materno || '',
         email: p.email,
         telefono: p.telefono,
         nivelEducacional: p.nivel_educacional,
@@ -659,7 +660,8 @@ export const useStore = create<StoreState>((set, get) => ({
       ejecucion_id: ejecucionId,
       rut: participante.rut,
       nombre: participante.nombre,
-      apellido: participante.apellido,
+      apellido: participante.apellidoPaterno,
+      apellido_materno: participante.apellidoMaterno || '',
       email: participante.email,
       telefono: participante.telefono,
       nivel_educacional: participante.nivelEducacional
@@ -682,7 +684,8 @@ export const useStore = create<StoreState>((set, get) => ({
       ejecucion_id: ejecucionId,
       rut: p.rut || '',
       nombre: p.nombre || '',
-      apellido: p.apellido || '',
+      apellido: p.apellidoPaterno || '',
+      apellido_materno: p.apellidoMaterno || '',
       email: p.email || null,
       telefono: p.telefono || null
     }));
@@ -695,7 +698,8 @@ export const useStore = create<StoreState>((set, get) => ({
         id: d.id,
         rut: d.rut,
         nombre: d.nombre,
-        apellido: d.apellido,
+        apellidoPaterno: d.apellido,
+        apellidoMaterno: d.apellido_materno || '',
         email: d.email,
         telefono: d.telefono,
         asistenciaProgreso: d.asistencia_progreso,
@@ -724,7 +728,8 @@ export const useStore = create<StoreState>((set, get) => ({
     const dbUpdate: any = {};
     if (data.rut !== undefined) dbUpdate.rut = data.rut;
     if (data.nombre !== undefined) dbUpdate.nombre = data.nombre;
-    if (data.apellido !== undefined) dbUpdate.apellido = data.apellido;
+    if (data.apellidoPaterno !== undefined) dbUpdate.apellido = data.apellidoPaterno;
+    if (data.apellidoMaterno !== undefined) dbUpdate.apellido_materno = data.apellidoMaterno;
     if (data.email !== undefined) dbUpdate.email = data.email;
     if (data.telefono !== undefined) dbUpdate.telefono = data.telefono;
 
