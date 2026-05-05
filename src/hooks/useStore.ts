@@ -153,8 +153,32 @@ export const useStore = create<StoreState>((set, get) => ({
           fechaRegistro: c.fecha_registro,
           observaciones: c.observaciones
         })) : state.clientes,
-        cursos: curData && curData.length > 0 ? curData as Curso[] : state.cursos,
-        relatores: rData && rData.length > 0 ? rData as Relator[] : state.relatores,
+        cursos: curData && curData.length > 0 ? curData.map((c: any) => ({
+          id: c.id,
+          codigoInterno: c.codigo_interno || '',
+          codigoSence: c.codigo_sence,
+          nombre: c.nombre,
+          descripcion: c.descripcion || '',
+          horasTotales: c.horas_totales || 0,
+          modalidad: c.modalidad,
+          esSAG: c.es_sag || false,
+          temarioUrl: c.temario_url,
+          activo: c.activo !== false,
+          archivosAdjuntos: c.archivosAdjuntos || []
+        })) : state.cursos,
+        relatores: rData && rData.length > 0 ? rData.map((r: any) => ({
+          id: r.id,
+          rut: r.rut,
+          nombre: r.nombre,
+          profesion: r.profesion,
+          especialidad: r.especialidad,
+          valorHora: r.valor_hora || 0,
+          curriculumUrl: r.curriculum_url,
+          titulosUrl: r.titulos_url,
+          email: r.email,
+          telefono: r.telefono,
+          activo: r.activo !== false
+        })) : state.relatores,
         ejecuciones: eData && eData.length > 0 ? eData.map((e: any) => ({
           id: e.id,
           codigoUnico: e.codigo_unico || e.id,
