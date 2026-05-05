@@ -68,6 +68,7 @@ export default function Cursos({ store }: CursosProps) {
   const [nuevoArchivo, setNuevoArchivo] = useState<Partial<ArchivoAdjunto>>({ tipo: 'documento', nombre: '', descripcion: '' });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [archivoPreview, setArchivoPreview] = useState<ArchivoAdjunto | null>(null);
 
   // Formulario
   const [formData, setFormData] = useState<Partial<Curso>>({
@@ -121,6 +122,13 @@ export default function Cursos({ store }: CursosProps) {
   const verDetalle = (curso: Curso) => {
     setCursoSeleccionado(curso);
     setIsDetailOpen(true);
+    // Seleccionar primer archivo PDF o Imagen para vista previa por defecto
+    const firstPreview = curso.archivosAdjuntos?.find(a => 
+      a.url.toLowerCase().endsWith('.pdf') || 
+      ['imagen', 'video'].includes(a.tipo) ||
+      /\.(jpg|jpeg|png|gif|webp)$/i.test(a.url)
+    );
+    setArchivoPreview(firstPreview || null);
   };
 
   const getModalidadIcon = (modalidad: ModalidadCurso) => {
@@ -264,7 +272,7 @@ export default function Cursos({ store }: CursosProps) {
           <Card key={curso.id} className={`hover:shadow-md transition-shadow ${!curso.activo && 'opacity-60'}`}>
             <CardContent className="p-4">
               <div className="flex items-start justify-between">
-                <div className="flex-1">
+                <div className="flex-1 cursor-pointer" onClick={() => verDetalle(curso)}>
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge variant="outline" className="font-mono text-xs">
                       {curso.codigoInterno}
@@ -277,7 +285,7 @@ export default function Cursos({ store }: CursosProps) {
                     )}
                   </div>
                   
-                  <h3 className="font-semibold text-slate-800 mt-2">{curso.nombre}</h3>
+                  <h3 className="font-semibold text-slate-800 mt-2 hover:text-[#1E3A5F] transition-colors">{curso.nombre}</h3>
                   
                   <p className="text-sm text-slate-500 mt-1 line-clamp-2">
                     {curso.descripcion}
@@ -347,69 +355,174 @@ export default function Cursos({ store }: CursosProps) {
         ))}
       </div>
 
-      {/* Diálogo de Detalle */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{cursoSeleccionado?.nombre}</DialogTitle>
-          </DialogHeader>
+        <DialogContent className="max-w-5xl h-[85vh] flex flex-col p-0 overflow-hidden">
+          <div className="p-6 border-b">
+            <DialogHeader>
+              <DialogTitle className="text-2xl">{cursoSeleccionado?.nombre}</DialogTitle>
+            </DialogHeader>
+          </div>
           
           {cursoSeleccionado && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge variant="outline" className="font-mono">
-                  {cursoSeleccionado.codigoInterno}
-                </Badge>
-                {cursoSeleccionado.codigoSence && (
-                  <Badge className="bg-blue-500">SENCE {cursoSeleccionado.codigoSence}</Badge>
-                )}
+            <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+              {/* Lado Izquierdo: Detalles */}
+              <div className="w-full md:w-1/3 p-6 overflow-y-auto border-r bg-slate-50/50 space-y-6">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge variant="outline" className="font-mono">
+                    {cursoSeleccionado.codigoInterno}
+                  </Badge>
+                  {cursoSeleccionado.codigoSence && (
+                    <Badge className="bg-blue-500">SENCE {cursoSeleccionado.codigoSence}</Badge>
+                  )}
+                  {cursoSeleccionado.esSAG && (
+                    <Badge className="bg-amber-500">SAG</Badge>
+                  )}
+                  <Badge className={cursoSeleccionado.activo ? 'bg-green-500 text-white' : 'bg-slate-500 text-white'}>
+                    {cursoSeleccionado.activo ? 'Activo' : 'Inactivo'}
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="p-3 bg-white border rounded-lg shadow-sm">
+                    <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Horas Totales</p>
+                    <p className="font-semibold text-lg">{cursoSeleccionado.horasTotales} horas</p>
+                  </div>
+                  <div className="p-3 bg-white border rounded-lg shadow-sm">
+                    <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Modalidad</p>
+                    <p className="font-semibold text-lg flex items-center gap-2">
+                      {getModalidadIcon(cursoSeleccionado.modalidad)}
+                      {cursoSeleccionado.modalidad}
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-2">Descripción</p>
+                  <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">{cursoSeleccionado.descripcion}</p>
+                </div>
+
                 {cursoSeleccionado.esSAG && (
-                  <Badge className="bg-amber-500">SAG</Badge>
+                  <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg">
+                    <h4 className="font-medium text-amber-800 mb-2 flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4" />
+                      Requisitos SAG
+                    </h4>
+                    <ul className="text-xs text-amber-700 space-y-2">
+                      <li className="flex items-start gap-2">• Examen de colinesterasa (90 días)</li>
+                      <li className="flex items-start gap-2">• Certificado médico</li>
+                      <li className="flex items-start gap-2">• Poder simple retiro credenciales</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="pt-4 space-y-3">
+                  <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Documentos Rápidos</p>
+                  <div className="grid grid-cols-1 gap-2">
+                    {cursoSeleccionado.archivosAdjuntos.slice(0, 3).map(arch => (
+                      <Button 
+                        key={arch.id} 
+                        variant="outline" 
+                        size="sm" 
+                        className="justify-start text-xs h-9 overflow-hidden"
+                        onClick={() => setArchivoPreview(arch)}
+                      >
+                        <Paperclip className="w-3 h-3 mr-2 shrink-0" />
+                        <span className="truncate">{arch.nombre}</span>
+                      </Button>
+                    ))}
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-xs text-[#1E3A5F] hover:bg-[#1E3A5F]/10"
+                      onClick={() => setIsArchivosOpen(true)}
+                    >
+                      Ver todos los archivos ({cursoSeleccionado.archivosAdjuntos.length})
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Lado Derecho: Vista Previa */}
+              <div className="flex-1 flex flex-col bg-slate-100/30">
+                {archivoPreview ? (
+                  <div className="flex-1 flex flex-col overflow-hidden">
+                    <div className="bg-white border-b p-3 flex items-center justify-between shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-[#1E3A5F] rounded flex items-center justify-center text-white">
+                          {tipoArchivoIcons[archivoPreview.tipo] ? React.createElement(tipoArchivoIcons[archivoPreview.tipo], { className: "w-4 h-4" }) : <File className="w-4 h-4" />}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold truncate max-w-[200px] md:max-w-md">{archivoPreview.nombre}</p>
+                          <p className="text-[10px] text-slate-500 uppercase tracking-tighter">
+                            {tipoArchivoLabels[archivoPreview.tipo]} • {(archivoPreview.tamaño || 0) > 0 ? `${(archivoPreview.tamaño! / 1024 / 1024).toFixed(2)} MB` : 'N/A'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" asChild>
+                          <a href={archivoPreview.url} target="_blank" rel="noopener noreferrer">
+                            <Download className="w-4 h-4 mr-2" />
+                            Descargar
+                          </a>
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="flex-1 bg-slate-200/50 flex items-center justify-center p-4 overflow-hidden">
+                      {archivoPreview.url.toLowerCase().endsWith('.pdf') ? (
+                        <iframe 
+                          src={`${archivoPreview.url}#toolbar=0`} 
+                          className="w-full h-full border-0 rounded-lg shadow-lg bg-white"
+                          title="Preview PDF"
+                        />
+                      ) : /\.(jpg|jpeg|png|gif|webp)$/i.test(archivoPreview.url) || archivoPreview.tipo === 'imagen' ? (
+                        <div className="relative w-full h-full flex items-center justify-center">
+                          <img 
+                            src={archivoPreview.url} 
+                            alt={archivoPreview.nombre}
+                            className="max-w-full max-h-full object-contain rounded-lg shadow-lg shadow-black/10"
+                          />
+                        </div>
+                      ) : (
+                        <div className="text-center p-8 bg-white rounded-2xl shadow-xl max-w-sm">
+                          <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <FileText className="w-10 h-10 text-slate-400" />
+                          </div>
+                          <h4 className="font-bold text-slate-800 mb-2">Sin vista previa disponible</h4>
+                          <p className="text-sm text-slate-500 mb-6">Este tipo de archivo ({archivoPreview.tipo}) debe ser descargado para visualizarse.</p>
+                          <Button asChild>
+                            <a href={archivoPreview.url} target="_blank" rel="noopener noreferrer">
+                              <Download className="w-4 h-4 mr-2" />
+                              Descargar Archivo
+                            </a>
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-12 text-center">
+                    <div className="w-24 h-24 bg-slate-200/50 rounded-full flex items-center justify-center mb-6 animate-pulse">
+                      <Image className="w-12 h-12" />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-600 mb-2">Panel de Vista Previa</h3>
+                    <p className="max-w-xs text-sm">Selecciona un archivo adjunto para previsualizar su contenido sin salir de la plataforma.</p>
+                    {cursoSeleccionado.archivosAdjuntos.length > 0 && (
+                      <div className="mt-8 grid grid-cols-2 gap-3 w-full max-w-md">
+                        {cursoSeleccionado.archivosAdjuntos.slice(0, 4).map(arch => (
+                          <button 
+                            key={arch.id}
+                            onClick={() => setArchivoPreview(arch)}
+                            className="p-3 bg-white border border-dashed rounded-xl hover:border-[#1E3A5F] hover:bg-slate-50 transition-all text-left"
+                          >
+                            <p className="text-xs font-bold text-slate-700 truncate">{arch.nombre}</p>
+                            <p className="text-[10px] text-slate-400 uppercase">{arch.tipo}</p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 )}
-                <Badge className={cursoSeleccionado.activo ? 'bg-green-500' : 'bg-slate-500'}>
-                  {cursoSeleccionado.activo ? 'Activo' : 'Inactivo'}
-                </Badge>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-3 bg-slate-50 rounded-lg">
-                  <p className="text-sm text-slate-500">Horas Totales</p>
-                  <p className="font-semibold">{cursoSeleccionado.horasTotales} horas</p>
-                </div>
-                <div className="p-3 bg-slate-50 rounded-lg">
-                  <p className="text-sm text-slate-500">Modalidad</p>
-                  <p className="font-semibold flex items-center gap-2">
-                    {getModalidadIcon(cursoSeleccionado.modalidad)}
-                    {cursoSeleccionado.modalidad}
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                <p className="text-sm text-slate-500 mb-1">Descripción</p>
-                <p className="text-slate-700">{cursoSeleccionado.descripcion}</p>
-              </div>
-
-              {cursoSeleccionado.esSAG && (
-                <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg">
-                  <h4 className="font-medium text-amber-800 mb-2">Requisitos SAG</h4>
-                  <ul className="text-sm text-amber-700 space-y-1">
-                    <li>• Examen de colinesterasa (vigencia 90 días)</li>
-                    <li>• Certificado médico</li>
-                    <li>• Poder simple para retiro de credenciales</li>
-                  </ul>
-                </div>
-              )}
-
-              <div className="flex gap-2">
-                <Button variant="outline" className="flex-1">
-                  <Download className="w-4 h-4 mr-2" />
-                  Descargar Temario
-                </Button>
-                <Button variant="outline" className="flex-1" onClick={() => setIsArchivosOpen(true)}>
-                  <Paperclip className="w-4 h-4 mr-2" />
-                  Archivos ({cursoSeleccionado.archivosAdjuntos.length})
-                </Button>
               </div>
             </div>
           )}
