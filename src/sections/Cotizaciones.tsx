@@ -1,8 +1,6 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { 
-  Search, Plus, FileText, Send, CheckCircle, XCircle, 
-  Edit, MoreHorizontal, Calendar,
-  DollarSign, Users, Download, Paperclip
+  DollarSign, Users, Download, Paperclip, File, Image, FileText, CheckCircle, XCircle
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,6 +37,7 @@ export default function Cotizaciones({ store }: CotizacionesProps) {
   const [cotizacionSeleccionada, setCotizacionSeleccionada] = useState<Cotizacion | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [archivoPreview, setArchivoPreview] = useState<any | null>(null);
 
   // Formulario
   const [formData, setFormData] = useState<Partial<Cotizacion>>({
@@ -127,6 +126,12 @@ export default function Cotizaciones({ store }: CotizacionesProps) {
   const verCotizacion = (cotizacion: Cotizacion) => {
     setCotizacionSeleccionada(cotizacion);
     setIsViewDialogOpen(true);
+    // Seleccionar primer archivo PDF o Imagen para vista previa por defecto
+    const firstPreview = cotizacion.archivosAdjuntos?.find(a => 
+      a.url.toLowerCase().endsWith('.pdf') || 
+      /\.(jpg|jpeg|png|gif|webp)$/i.test(a.url)
+    );
+    setArchivoPreview(firstPreview || null);
   };
 
   const getEstadoBadge = (estado: EstadoCotizacion) => {
@@ -305,9 +310,9 @@ export default function Cotizaciones({ store }: CotizacionesProps) {
           <Card key={cotizacion.id} className="hover:shadow-md transition-shadow">
             <CardContent className="p-4">
               <div className="flex items-start justify-between">
-                <div className="flex-1">
+                <div className="flex-1 cursor-pointer" onClick={() => verCotizacion(cotizacion)}>
                   <div className="flex items-center gap-3">
-                    <h3 className="font-semibold text-slate-800">{cotizacion.codigoUnico || cotizacion.numero}</h3>
+                    <h3 className="font-semibold text-slate-800 hover:text-[#1E3A5F] transition-colors">{cotizacion.codigoUnico || cotizacion.numero}</h3>
                     {getEstadoBadge(cotizacion.estado)}
                     {cotizacion.perteneceCatalogo && <Badge variant="outline">Catálogo</Badge>}
                   </div>
@@ -386,67 +391,137 @@ export default function Cotizaciones({ store }: CotizacionesProps) {
 
       {/* Diálogo Ver Cotización */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Detalle de Cotización {cotizacionSeleccionada?.codigoUnico || cotizacionSeleccionada?.numero}</DialogTitle>
-          </DialogHeader>
+        <DialogContent className="max-w-none sm:max-w-[95vw] w-[95vw] h-[92vh] flex flex-col p-0 overflow-hidden">
+          <div className="p-6 border-b">
+            <DialogHeader>
+              <DialogTitle className="text-2xl">
+                Cotización {cotizacionSeleccionada?.codigoUnico || cotizacionSeleccionada?.numero} - {cotizacionSeleccionada?.cliente?.razonSocial}
+              </DialogTitle>
+            </DialogHeader>
+          </div>
           
           {cotizacionSeleccionada && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm bg-slate-50 p-4 rounded-lg">
-                <div>
-                  <p className="text-slate-500">Cliente</p>
-                  <p className="font-semibold">{cotizacionSeleccionada.cliente?.razonSocial}</p>
+            <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+              {/* Lado Izquierdo: Resumen y Datos */}
+              <div className="w-full md:w-1/3 p-6 overflow-y-auto border-r bg-slate-50/50 space-y-6">
+                <div className="space-y-4">
+                  <div className="p-4 bg-white border rounded-xl shadow-sm space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Estado Actual</p>
+                      {getEstadoBadge(cotizacionSeleccionada.estado)}
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Cliente</p>
+                      <p className="font-bold text-slate-800">{cotizacionSeleccionada.cliente?.razonSocial}</p>
+                      <p className="text-xs text-slate-500">{cotizacionSeleccionada.cliente?.rut}</p>
+                    </div>
+                    <div className="pt-2 border-t">
+                      <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Servicio propuesto</p>
+                      <p className="font-semibold text-[#1E3A5F]">{cotizacionSeleccionada.nombre}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 bg-white border rounded-lg shadow-sm text-center">
+                      <p className="text-[10px] text-slate-500 uppercase font-bold">Inversión Total</p>
+                      <p className="font-bold text-lg text-blue-600">
+                        ${(cotizacionSeleccionada.precio || cotizacionSeleccionada.total || 0).toLocaleString('es-CL')}
+                      </p>
+                    </div>
+                    <div className="p-3 bg-white border rounded-lg shadow-sm text-center">
+                      <p className="text-[10px] text-slate-500 uppercase font-bold">Fecha Tentativa</p>
+                      <p className="font-bold text-slate-700">{cotizacionSeleccionada.fechaTentativa || 'TBD'}</p>
+                    </div>
+                  </div>
                 </div>
+
                 <div>
-                  <p className="text-slate-500">Estado</p>
-                  {getEstadoBadge(cotizacionSeleccionada.estado)}
-                </div>
-                <div className="col-span-2">
-                  <p className="text-slate-500">Servicio / Curso</p>
-                  <p className="font-medium">{cotizacionSeleccionada.nombre}</p>
-                </div>
-                <div>
-                  <p className="text-slate-500">Precio</p>
-                  <p className="font-semibold text-lg text-blue-600">
-                    ${(cotizacionSeleccionada.precio || cotizacionSeleccionada.total || 0).toLocaleString('es-CL')}
+                  <h4 className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-2">Detalles de la Propuesta</h4>
+                  <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed">
+                    {cotizacionSeleccionada.descripcion || 'Sin descripción detallada.'}
                   </p>
                 </div>
-                <div>
-                  <p className="text-slate-500">Fecha Tentativa</p>
-                  <p>{cotizacionSeleccionada.fechaTentativa || 'No definida'}</p>
+
+                <div className="pt-4 border-t space-y-3">
+                  <h4 className="text-xs text-slate-500 uppercase font-bold tracking-wider">Archivos de la Cotización</h4>
+                  {(!cotizacionSeleccionada.archivosAdjuntos || cotizacionSeleccionada.archivosAdjuntos.length === 0) ? (
+                    <div className="text-center py-6 bg-slate-100 rounded-lg border-2 border-dashed border-slate-200">
+                      <Paperclip className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                      <p className="text-xs text-slate-500">Sin documentos adjuntos</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-2">
+                      {cotizacionSeleccionada.archivosAdjuntos.map(a => (
+                        <button 
+                          key={a.id} 
+                          onClick={() => setArchivoPreview(a)}
+                          className={`flex items-center gap-3 p-3 bg-white border rounded-lg text-left transition-all hover:border-[#1E3A5F] ${archivoPreview?.id === a.id ? 'border-[#1E3A5F] ring-1 ring-[#1E3A5F]/20' : 'border-slate-200'}`}
+                        >
+                          <div className="w-8 h-8 rounded bg-slate-50 flex items-center justify-center shrink-0">
+                            {a.url.toLowerCase().endsWith('.pdf') ? <FileText className="w-4 h-4 text-red-500" /> : <File className="w-4 h-4 text-slate-400" />}
+                          </div>
+                          <span className="text-xs font-medium text-slate-700 truncate">{a.nombre}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-              
-              <div>
-                <h4 className="font-medium text-slate-700 mb-2">Descripción</h4>
-                <p className="text-slate-600 text-sm whitespace-pre-wrap border p-3 rounded-md bg-white">
-                  {cotizacionSeleccionada.descripcion || 'Sin descripción'}
-                </p>
               </div>
 
-              <div className="border-t pt-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium text-slate-700 flex items-center gap-2">
-                    <Paperclip className="w-4 h-4" /> Archivos Adjuntos
-                  </h4>
-                  <Button variant="outline" size="sm">
-                    <Plus className="w-4 h-4 mr-1" /> Adjuntar
-                  </Button>
-                </div>
-                {(!cotizacionSeleccionada.archivosAdjuntos || cotizacionSeleccionada.archivosAdjuntos.length === 0) ? (
-                  <p className="text-sm text-slate-500 italic">No hay archivos adjuntos.</p>
+              {/* Lado Derecho: Vista Previa */}
+              <div className="flex-1 flex flex-col bg-slate-100/30">
+                {archivoPreview ? (
+                  <div className="flex-1 flex flex-col overflow-hidden">
+                    <div className="bg-white border-b p-3 flex items-center justify-between shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-[#1E3A5F] rounded flex items-center justify-center text-white">
+                          <FileText className="w-4 h-4" />
+                        </div>
+                        <p className="text-sm font-semibold truncate max-w-[200px] md:max-w-md">{archivoPreview.nombre}</p>
+                      </div>
+                      <Button variant="outline" size="sm" asChild>
+                        <a href={archivoPreview.url} target="_blank" rel="noopener noreferrer">
+                          <Download className="w-4 h-4 mr-2" />
+                          Descargar
+                        </a>
+                      </Button>
+                    </div>
+                    
+                    <div className="flex-1 bg-slate-200/50 flex items-center justify-center p-4 overflow-hidden">
+                      {archivoPreview.url.toLowerCase().endsWith('.pdf') ? (
+                        <iframe 
+                          src={`${archivoPreview.url}#toolbar=0`} 
+                          className="w-full h-full border-0 rounded-lg shadow-lg bg-white"
+                          title="Preview PDF"
+                        />
+                      ) : /\.(jpg|jpeg|png|gif|webp)$/i.test(archivoPreview.url) ? (
+                        <img 
+                          src={archivoPreview.url} 
+                          alt={archivoPreview.nombre}
+                          className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
+                        />
+                      ) : (
+                        <div className="text-center p-8 bg-white rounded-2xl shadow-xl max-w-sm">
+                          <FileText className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                          <h4 className="font-bold text-slate-800 mb-2">Vista previa no disponible</h4>
+                          <p className="text-sm text-slate-500 mb-6">Descarga el archivo para visualizar su contenido.</p>
+                          <Button asChild>
+                            <a href={archivoPreview.url} target="_blank" rel="noopener noreferrer">
+                              Descargar Archivo
+                            </a>
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 ) : (
-                  <ul className="space-y-2">
-                    {cotizacionSeleccionada.archivosAdjuntos.map(a => (
-                      <li key={a.id} className="flex items-center justify-between bg-slate-50 p-2 rounded text-sm border">
-                        <span className="truncate">{a.nombre}</span>
-                        <Button variant="ghost" size="sm" asChild>
-                          <a href={a.url} target="_blank" rel="noreferrer">Descargar</a>
-                        </Button>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-12 text-center">
+                    <div className="w-24 h-24 bg-slate-200/50 rounded-full flex items-center justify-center mb-6">
+                      <FileText className="w-12 h-12" />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-600 mb-2">Previsualizador de Cotización</h3>
+                    <p className="max-w-xs text-sm">Selecciona un documento adjunto para revisar la propuesta técnica o comercial sin salir del gestor.</p>
+                  </div>
                 )}
               </div>
             </div>
