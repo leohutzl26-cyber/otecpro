@@ -548,29 +548,74 @@ export const useStore = create<StoreState>((set, get) => ({
 
     set(state => ({ ejecuciones: [...state.ejecuciones, newEjecucion] }));
     try {
-      const { error } = await supabase.from('ejecuciones').insert(newEjecucion);
+      const dbE = {
+        curso_id: newEjecucion.cursoId || null,
+        cliente_id: newEjecucion.clienteId || null,
+        estado: newEjecucion.estado,
+        modalidad: newEjecucion.configuracion?.modalidad || 'Presencial',
+        total_horas: newEjecucion.configuracion?.totalHoras || 0,
+        lugar: newEjecucion.lugaresEjecucion || null,
+        relator_id: newEjecucion.relatorId || null,
+        fecha_inicio: newEjecucion.fechaInicio || null,
+        fecha_termino: newEjecucion.fechaTermino || null,
+        horario: newEjecucion.horario || null,
+        cotizacion_id: newEjecucion.cotizacionId || null
+      };
+      const { data, error } = await supabase.from('ejecuciones').insert(dbE).select().single();
       if (error) throw error;
+      // Reemplazar el ID temporal con el UUID de la BD
+      const ejecucionConId = { ...newEjecucion, id: data.id };
+      set(state => ({
+        ejecuciones: state.ejecuciones.map(e => e.id === newEjecucion.id ? ejecucionConId : e)
+      }));
+      return ejecucionConId;
     } catch (error: any) {
       set(state => ({ ejecuciones: state.ejecuciones.filter(e => e.id !== newEjecucion.id) }));
       toast.error(`Error al generar ejecución: ${error.message || 'Desconocido'}`);
       throw error;
     }
-    return newEjecucion;
   },
 
   // --- EJECUCIONES ---
+
+  // Helper: mapea una Ejecucion del estado frontend a las columnas de la BD
+  // (se define fuera del store y se usa en addEjecucion y aprobarCotizacion)
   addEjecucion: async (ejecucion) => {
     const newE = { ...ejecucion, id: `e${Date.now()}` } as Ejecucion;
     set(state => ({ ejecuciones: [...state.ejecuciones, newE] }));
+
+    // Mapeo explícito a snake_case (solo columnas que existen en la BD)
+    const dbE = {
+      curso_id: newE.cursoId || null,
+      cliente_id: newE.clienteId || null,
+      codigo_sence: newE.codigoSence || null,
+      estado: newE.estado,
+      modalidad: newE.configuracion?.modalidad || 'Presencial',
+      total_horas: newE.configuracion?.totalHoras || 0,
+      lugar: newE.configuracion?.lugar || newE.lugaresEjecucion || null,
+      url_plataforma: newE.configuracion?.urlPlataforma || null,
+      relator_id: newE.relatorId || null,
+      fecha_inicio: newE.fechaInicio || null,
+      fecha_termino: newE.fechaTermino || null,
+      horario: newE.horario || null,
+      cotizacion_id: newE.cotizacionId || null,
+      observaciones: newE.observaciones || null
+    };
+
     try {
-      const { error } = await supabase.from('ejecuciones').insert(newE);
+      const { data, error } = await supabase.from('ejecuciones').insert(dbE).select().single();
       if (error) throw error;
+      // Actualizar el estado con el UUID real de la BD
+      const ejecucionConId = { ...newE, id: data.id };
+      set(state => ({
+        ejecuciones: state.ejecuciones.map(e => e.id === newE.id ? ejecucionConId : e)
+      }));
+      return ejecucionConId;
     } catch (error: any) {
       set(state => ({ ejecuciones: state.ejecuciones.filter(e => e.id !== newE.id) }));
       toast.error(`Error al guardar ejecución: ${error.message || 'Desconocido'}`);
       throw error;
     }
-    return newE;
   },
 
   updateEjecucion: async (id, data) => {
