@@ -39,6 +39,7 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
   const [ejecucionSeleccionada, setEjecucionSeleccionada] = useState<Ejecucion | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('general');
+  const [archivoPreview, setArchivoPreview] = useState<{ nombre: string; url: string; tipo: string } | null>(null);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [nuevaE, setNuevaE] = useState<Partial<Ejecucion>>({
@@ -143,6 +144,7 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
     setEjecucionSeleccionada(ejecucion);
     setIsDetailOpen(true);
     setActiveTab('general');
+    setArchivoPreview(null);
   };
 
   const getEstadoBadge = (estado: EstadoEjecucion) => {
@@ -238,14 +240,15 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
                         key={ejecucion.id} 
                         draggable
                         onDragStart={(e) => e.dataTransfer.setData("ejecucionId", ejecucion.id)}
-                        className="cursor-move hover:shadow-md transition-all active:scale-95"
+                        className="cursor-pointer hover:shadow-md transition-all active:scale-95 group"
+                        onClick={() => verDetalle(ejecucion)}
                       >
                         <CardContent className="p-3">
                           <div className="flex justify-between items-start mb-2">
                             <span className="text-xs font-semibold text-slate-500">
                               {ejecucion.codigoUnico || ejecucion.id}
                             </span>
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => verDetalle(ejecucion)}>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity">
                               <MoreHorizontal className="w-3 h-3" />
                             </Button>
                           </div>
@@ -277,7 +280,7 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
               const nombreServicio = curso?.nombre || cotizacion?.nombre || 'Servicio Personalizado';
 
               return (
-                <Card key={ejecucion.id} className="hover:shadow-md transition-shadow">
+                <Card key={ejecucion.id} className="hover:shadow-md transition-shadow cursor-pointer group" onClick={() => verDetalle(ejecucion)}>
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -324,7 +327,7 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <Button size="sm" variant="outline" onClick={() => verDetalle(ejecucion)}>
+                        <Button size="sm" variant="outline" className="group-hover:bg-[#1E3A5F] group-hover:text-white transition-colors">
                           <FileText className="w-4 h-4 mr-1" />
                           Ver
                         </Button>
@@ -361,296 +364,345 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
 
       {/* Diálogo de Detalle Completo */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-none sm:max-w-[95vw] w-[95vw] h-[92vh] flex flex-col p-0 overflow-hidden">
           {ejecucionSeleccionada && (
-            <>
-              <DialogHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <DialogTitle className="text-xl">
-                      {cursos.find(c => c.id === ejecucionSeleccionada.cursoId)?.nombre || 
-                       cotizaciones.find(c => c.id === ejecucionSeleccionada.cotizacionId)?.nombre || 
-                       'Servicio Personalizado'}
-                    </DialogTitle>
-                    <p className="text-slate-500 mt-1">
-                      {clientes.find(c => c.id === ejecucionSeleccionada.clienteId)?.razonSocial}
-                      <span className="mx-2">•</span>
-                      Código: {ejecucionSeleccionada.codigoUnico || ejecucionSeleccionada.id}
-                    </p>
+            <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+              {/* Lado Izquierdo: Información y Tabs */}
+              <div className="w-full md:w-3/5 flex flex-col border-r overflow-hidden">
+                <div className="p-6 border-b bg-white shrink-0">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-[#1E3A5F] rounded-lg flex items-center justify-center text-white">
+                        <GraduationCap className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <DialogTitle className="text-xl">
+                          {cursos.find(c => c.id === ejecucionSeleccionada.cursoId)?.nombre || 
+                           cotizaciones.find(c => c.id === ejecucionSeleccionada.cotizacionId)?.nombre || 
+                           'Servicio Personalizado'}
+                        </DialogTitle>
+                        <div className="flex items-center gap-2 text-sm text-slate-500">
+                          <span>{clientes.find(c => c.id === ejecucionSeleccionada.clienteId)?.razonSocial}</span>
+                          <span className="text-slate-300">•</span>
+                          <code className="bg-slate-100 px-1 rounded">{ejecucionSeleccionada.codigoUnico || ejecucionSeleccionada.id}</code>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {getEstadoBadge(ejecucionSeleccionada.estado)}
+                      {cursos.find(c => c.id === ejecucionSeleccionada.cursoId)?.esSAG && (
+                        <Badge className="bg-amber-500 text-white">SAG</Badge>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {getEstadoBadge(ejecucionSeleccionada.estado)}
-                    {cursos.find(c => c.id === ejecucionSeleccionada.cursoId)?.esSAG && (
-                      <Badge className="bg-amber-500">SAG</Badge>
-                    )}
-                  </div>
+
+                  <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                    <TabsList className="bg-slate-100 p-1 rounded-lg">
+                      <TabsTrigger value="general" className="rounded-md">General</TabsTrigger>
+                      <TabsTrigger value="participantes" className="rounded-md">Participantes ({ejecucionSeleccionada.participantes?.length || 0})</TabsTrigger>
+                      <TabsTrigger value="documentos" className="rounded-md">Archivos</TabsTrigger>
+                      <TabsTrigger value="finanzas" className="rounded-md">Finanzas</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
                 </div>
-              </DialogHeader>
 
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="general">General</TabsTrigger>
-                  <TabsTrigger value="participantes">
-                    Participantes ({ejecucionSeleccionada.participantes?.length || 0})
-                  </TabsTrigger>
-                  <TabsTrigger value="documentos">Archivos</TabsTrigger>
-                  <TabsTrigger value="finanzas">Finanzas</TabsTrigger>
-                </TabsList>
+                <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50">
+                  {/* Tab General */}
+                  {activeTab === 'general' && (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="p-4 bg-white border rounded-xl shadow-sm">
+                          <h4 className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-4">Logística y Horarios</h4>
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-blue-50 rounded text-blue-600"><Clock className="w-4 h-4" /></div>
+                              <div>
+                                <p className="text-[10px] text-slate-400 uppercase font-bold">Horario</p>
+                                <p className="text-sm font-medium">{ejecucionSeleccionada.horario || 'No definido'}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-green-50 rounded text-green-600"><MapPin className="w-4 h-4" /></div>
+                              <div>
+                                <p className="text-[10px] text-slate-400 uppercase font-bold">Ubicación / Plataforma</p>
+                                <p className="text-sm font-medium">
+                                  {ejecucionSeleccionada.lugaresEjecucion || ejecucionSeleccionada.configuracion?.lugar || ejecucionSeleccionada.configuracion?.urlPlataforma || 'No definido'}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
 
-                {/* Tab General */}
-                <TabsContent value="general" className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-4">
-                      <div className="p-4 bg-slate-50 rounded-lg">
-                        <h4 className="font-medium text-slate-700 mb-3">Información del Curso</h4>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-slate-500">Modalidad:</span>
-                            <span>{ejecucionSeleccionada.configuracion?.modalidad || 'N/A'}</span>
+                        <div className="p-4 bg-white border rounded-xl shadow-sm">
+                          <h4 className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-4">Relator Asignado</h4>
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center">
+                              <Users className="w-5 h-5 text-slate-400" />
+                            </div>
+                            <div>
+                              <p className="font-bold text-slate-800">
+                                {relatores.find(r => r.id === ejecucionSeleccionada.relatorId)?.nombre || 'No asignado'}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {relatores.find(r => r.id === ejecucionSeleccionada.relatorId)?.especialidad || 'Sin especialidad'}
+                              </p>
+                            </div>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-500">Horas:</span>
-                            <span>{ejecucionSeleccionada.configuracion?.totalHoras || 0} hrs</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-500">Horario:</span>
-                            <span>{ejecucionSeleccionada.horario || 'No definido'}</span>
-                          </div>
+                          {ejecucionSeleccionada.relatorId && (
+                            <Button variant="outline" size="sm" className="w-full text-xs">Ver currículum</Button>
+                          )}
                         </div>
                       </div>
 
-                      <div className="p-4 bg-slate-50 rounded-lg">
-                        <h4 className="font-medium text-slate-700 mb-3">Relator</h4>
-                        <p className="font-medium">
-                          {relatores.find(r => r.id === ejecucionSeleccionada.relatorId)?.nombre || 'No asignado'}
-                        </p>
-                        <p className="text-sm text-slate-500">
-                          {relatores.find(r => r.id === ejecucionSeleccionada.relatorId)?.especialidad}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="p-4 bg-slate-50 rounded-lg">
-                        <h4 className="font-medium text-slate-700 mb-3">Fechas</h4>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-slate-500">Inicio:</span>
-                            <span>{ejecucionSeleccionada.fechaInicio || 'No definido'}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-500">Término:</span>
-                            <span>{ejecucionSeleccionada.fechaTermino || 'No definido'}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="p-4 bg-slate-50 rounded-lg">
-                        <h4 className="font-medium text-slate-700 mb-3">Ubicación</h4>
-                        <p className="text-sm">
-                          {ejecucionSeleccionada.lugaresEjecucion || 
-                           ejecucionSeleccionada.configuracion?.lugar || 
-                           ejecucionSeleccionada.configuracion?.urlPlataforma || 
-                           'No definido'}
-                        </p>
-                      </div>
-
-                      {(ejecucionSeleccionada.idAcciones?.length > 0 || ejecucionSeleccionada.idAccionSence) && (
-                        <div className="p-4 bg-slate-50 rounded-lg">
-                          <h4 className="font-medium text-slate-700 mb-3">SENCE</h4>
-                          <div className="flex flex-wrap gap-2">
-                            {ejecucionSeleccionada.idAccionSence && <Badge variant="outline">{ejecucionSeleccionada.idAccionSence}</Badge>}
-                            {ejecucionSeleccionada.idAcciones?.map((id, idx) => (
-                              <Badge key={idx} variant="outline">{id}</Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Sesiones */}
-                  <div className="p-4 bg-slate-50 rounded-lg">
-                    <h4 className="font-medium text-slate-700 mb-3">Sesiones Programadas</h4>
-                    <div className="space-y-2">
-                      {ejecucionSeleccionada.configuracion?.sesiones?.map((sesion, idx) => (
-                        <div key={idx} className="flex items-center justify-between p-2 bg-white rounded border">
-                          <span className="font-medium">Sesión {idx + 1}</span>
-                          <span className="text-sm text-slate-600">
-                            {sesion.fecha} | {sesion.horaInicio} - {sesion.horaFin}
-                          </span>
-                        </div>
-                      ))}
-                      {(!ejecucionSeleccionada.configuracion?.sesiones || ejecucionSeleccionada.configuracion.sesiones.length === 0) && (
-                        <p className="text-slate-500 text-sm">No hay sesiones programadas</p>
-                      )}
-                    </div>
-                  </div>
-                </TabsContent>
-
-                {/* Tab Participantes */}
-                <TabsContent value="participantes">
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <h4 className="font-medium text-slate-700">
-                        Total: {ejecucionSeleccionada.participantes?.length || 0} participantes
-                      </h4>
-                      <div className="flex gap-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          className="text-purple-600 border-purple-200 hover:bg-purple-50"
-                          onClick={() => {
-                            setIsImportModalOpen(true);
-                            setExtractedStudents([]);
-                            setImportFile(null);
-                          }}
-                        >
-                          <Sparkles className="w-4 h-4 mr-2" />
-                          Importar Nómina IA
-                        </Button>
-                        <Button size="sm">
-                          <Upload className="w-4 h-4 mr-2" />
-                          Cargar Excel
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="border rounded-lg overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead className="bg-slate-50">
-                          <tr>
-                            <th className="text-left p-3">RUT</th>
-                            <th className="text-left p-3">Nombre</th>
-                            <th className="text-center p-3">Asistencia</th>
-                            {cursos.find(c => c.id === ejecucionSeleccionada.cursoId)?.esSAG && (
-                              <>
-                                <th className="text-center p-3">Colinesterasa</th>
-                                <th className="text-center p-3">Cert. Médico</th>
-                                <th className="text-center p-3">Poder</th>
-                              </>
-                            )}
-                            <th className="text-center p-3">Estado</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y">
-                          {(ejecucionSeleccionada.participantes || []).map((participante) => (
-                            <tr key={participante.id} className="hover:bg-slate-50">
-                              <td className="p-3">{participante.rut}</td>
-                              <td className="p-3">
-                                {participante.nombre} {participante.apellidoPaterno} {participante.apellidoMaterno}
-                              </td>
-                              <td className="p-3 text-center">
-                                <div className="flex items-center justify-center gap-2">
-                                  <Progress value={participante.asistenciaProgreso} className="w-16 h-2" />
-                                  <span className="text-xs">{participante.asistenciaProgreso}%</span>
-                                </div>
-                              </td>
-                              {cursos.find(c => c.id === ejecucionSeleccionada.cursoId)?.esSAG && (
-                                <>
-                                  <td className="p-3 text-center">
-                                    <StatusBadge 
-                                      status={participante.documentosSAG?.colinesterasa?.valido ? 'valido' : 
-                                             participante.documentosSAG?.colinesterasa?.url ? 'pendiente' : 'faltante'}
-                                    />
-                                  </td>
-                                  <td className="p-3 text-center">
-                                    <StatusBadge 
-                                      status={participante.documentosSAG?.certificadoMedico?.valido ? 'valido' : 
-                                             participante.documentosSAG?.certificadoMedico?.url ? 'pendiente' : 'faltante'}
-                                    />
-                                  </td>
-                                  <td className="p-3 text-center">
-                                    <StatusBadge 
-                                      status={participante.documentosSAG?.poderSimple?.valido ? 'valido' : 
-                                             participante.documentosSAG?.poderSimple?.url ? 'pendiente' : 'faltante'}
-                                    />
-                                  </td>
-                                </>
-                              )}
-                              <td className="p-3 text-center">
-                                <Badge className={
-                                  participante.estadoSAG === 'Completo' ? 'bg-green-500' :
-                                  participante.estadoSAG === 'Incompleto' ? 'bg-amber-500' :
-                                  'bg-slate-500'
-                                }>
-                                  {participante.estadoSAG || 'N/A'}
-                                </Badge>
-                              </td>
-                            </tr>
+                      <div className="p-4 bg-white border rounded-xl shadow-sm">
+                        <h4 className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-4">Sesiones Programadas</h4>
+                        <div className="grid grid-cols-2 gap-2">
+                          {ejecucionSeleccionada.configuracion?.sesiones?.map((sesion, idx) => (
+                            <div key={idx} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                              <div className="w-8 h-8 bg-white border rounded flex items-center justify-center font-bold text-xs text-[#1E3A5F]">
+                                {idx + 1}
+                              </div>
+                              <div className="text-xs">
+                                <p className="font-bold">{sesion.fecha}</p>
+                                <p className="text-slate-500">{sesion.horaInicio} - {sesion.horaFin}</p>
+                              </div>
+                            </div>
                           ))}
-                        </tbody>
-                      </table>
+                          {(!ejecucionSeleccionada.configuracion?.sesiones || ejecucionSeleccionada.configuracion.sesiones.length === 0) && (
+                            <p className="col-span-2 text-slate-400 text-sm italic py-4 text-center">No hay sesiones registradas.</p>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </TabsContent>
+                  )}
 
-                {/* Tab Documentos (Archivos Adjuntos) */}
-                <TabsContent value="documentos">
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center mb-4">
-                      <h4 className="font-medium text-slate-700">Archivos Adjuntos de la Ejecución</h4>
-                      <Button size="sm" variant="outline">
-                        <Plus className="w-4 h-4 mr-1" />
-                        Añadir Archivo
+                  {/* Tab Participantes */}
+                  {activeTab === 'participantes' && (
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center bg-white p-3 rounded-lg border shadow-sm">
+                        <div className="flex items-center gap-3">
+                          <Users className="w-5 h-5 text-slate-400" />
+                          <span className="font-bold text-slate-700">{ejecucionSeleccionada.participantes?.length || 0} alumnos inscritos</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="text-purple-600 border-purple-200 hover:bg-purple-50"
+                            onClick={() => setIsImportModalOpen(true)}
+                          >
+                            <Sparkles className="w-3 h-3 mr-2" />
+                            Importar IA
+                          </Button>
+                          <Button size="sm">Cargar Excel</Button>
+                        </div>
+                      </div>
+
+                      <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
+                        <table className="w-full text-sm">
+                          <thead className="bg-slate-50 border-b">
+                            <tr>
+                              <th className="text-left p-4 font-bold text-slate-500 uppercase text-[10px] tracking-wider">Alumno</th>
+                              <th className="text-center p-4 font-bold text-slate-500 uppercase text-[10px] tracking-wider">Asistencia</th>
+                              {cursos.find(c => c.id === ejecucionSeleccionada.cursoId)?.esSAG && (
+                                <th className="text-center p-4 font-bold text-slate-500 uppercase text-[10px] tracking-wider">Documentos SAG</th>
+                              )}
+                              <th className="text-center p-4 font-bold text-slate-500 uppercase text-[10px] tracking-wider">Estado</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y">
+                            {(ejecucionSeleccionada.participantes || []).map((p) => (
+                              <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
+                                <td className="p-4">
+                                  <p className="font-bold text-slate-800">{p.nombre} {p.apellidoPaterno}</p>
+                                  <p className="text-xs text-slate-500 font-mono">{p.rut}</p>
+                                </td>
+                                <td className="p-4">
+                                  <div className="flex flex-col items-center gap-1">
+                                    <Progress value={p.asistenciaProgreso} className="w-16 h-1.5" />
+                                    <span className="text-[10px] font-bold">{p.asistenciaProgreso}%</span>
+                                  </div>
+                                </td>
+                                {cursos.find(c => c.id === ejecucionSeleccionada.cursoId)?.esSAG && (
+                                  <td className="p-4">
+                                    <div className="flex items-center justify-center gap-2">
+                                      {/* Colinesterasa */}
+                                      <button 
+                                        onClick={() => p.documentosSAG?.colinesterasa?.url && setArchivoPreview({ 
+                                          nombre: `Colinesterasa - ${p.nombre}`, 
+                                          url: p.documentosSAG.colinesterasa.url,
+                                          tipo: 'documento'
+                                        })}
+                                        title="Examen Colinesterasa"
+                                      >
+                                        <StatusBadge 
+                                          status={p.documentosSAG?.colinesterasa?.valido ? 'valido' : 
+                                                 p.documentosSAG?.colinesterasa?.url ? 'pendiente' : 'faltante'}
+                                        />
+                                      </button>
+                                      {/* Certificado Médico */}
+                                      <button 
+                                        onClick={() => p.documentosSAG?.certificadoMedico?.url && setArchivoPreview({ 
+                                          nombre: `Cert. Médico - ${p.nombre}`, 
+                                          url: p.documentosSAG.certificadoMedico.url,
+                                          tipo: 'documento'
+                                        })}
+                                        title="Certificado Médico"
+                                      >
+                                        <StatusBadge 
+                                          status={p.documentosSAG?.certificadoMedico?.valido ? 'valido' : 
+                                                 p.documentosSAG?.certificadoMedico?.url ? 'pendiente' : 'faltante'}
+                                        />
+                                      </button>
+                                    </div>
+                                  </td>
+                                )}
+                                <td className="p-4 text-center">
+                                  <Badge className={
+                                    p.estadoSAG === 'Completo' ? 'bg-green-500' :
+                                    p.estadoSAG === 'Incompleto' ? 'bg-amber-500' : 'bg-slate-500'
+                                  }>
+                                    {p.estadoSAG || 'N/A'}
+                                  </Badge>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tab Documentos */}
+                  {activeTab === 'documentos' && (
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center mb-4">
+                        <h4 className="font-bold text-slate-700">Archivos de la Ejecución</h4>
+                        <Button size="sm" variant="outline"><Plus className="w-4 h-4 mr-1" /> Añadir</Button>
+                      </div>
+
+                      {!ejecucionSeleccionada.archivosAdjuntos || ejecucionSeleccionada.archivosAdjuntos.length === 0 ? (
+                        <div className="text-center py-12 bg-white border-2 border-dashed rounded-xl">
+                          <Paperclip className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+                          <p className="text-slate-400 text-sm">No hay archivos adjuntos específicos para esta ejecución.</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-4">
+                          {ejecucionSeleccionada.archivosAdjuntos.map(archivo => (
+                            <button 
+                              key={archivo.id} 
+                              onClick={() => setArchivoPreview({ nombre: archivo.nombre, url: archivo.url, tipo: 'documento' })}
+                              className="flex items-center gap-3 p-4 bg-white border rounded-xl hover:border-[#1E3A5F] transition-all text-left shadow-sm group"
+                            >
+                              <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                <FileText className="w-5 h-5" />
+                              </div>
+                              <div className="flex-1 overflow-hidden">
+                                <h4 className="font-bold text-sm truncate">{archivo.nombre}</h4>
+                                <p className="text-[10px] text-slate-400 uppercase">Documento</p>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Tab Finanzas */}
+                  {activeTab === 'finanzas' && (
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="p-6 bg-white border rounded-2xl shadow-sm space-y-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-3 bg-emerald-50 rounded-xl text-emerald-600">
+                            <DollarSign className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-400 uppercase font-bold">Valor de Ejecución</p>
+                            <p className="text-3xl font-black text-emerald-700">${(ejecucionSeleccionada.financiero?.valor || 0).toLocaleString('es-CL')}</p>
+                          </div>
+                        </div>
+                        <div className="pt-4 border-t space-y-3">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-slate-500">Forma de Pago:</span>
+                            <span className="font-bold text-slate-700">{ejecucionSeleccionada.financiero?.formaPago || 'TBD'}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-slate-500">Orden de Compra:</span>
+                            <span className="font-bold text-slate-700">{ejecucionSeleccionada.financiero?.ordenCompra || 'N/A'}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-6 bg-[#1E3A5F] text-white rounded-2xl shadow-lg relative overflow-hidden">
+                        <div className="relative z-10">
+                          <h4 className="text-xs uppercase font-bold opacity-70 mb-6">Estado de Pago Estimado</h4>
+                          <div className="space-y-4">
+                            <div>
+                              <p className="text-3xl font-bold">{ejecucionSeleccionada.financiero?.fechaPago || 'Fecha no definida'}</p>
+                              <p className="text-xs opacity-60">Basado en condiciones de cliente</p>
+                            </div>
+                            <Button variant="secondary" className="w-full bg-white/10 hover:bg-white/20 border-0 text-white">Registrar Hito de Cobro</Button>
+                          </div>
+                        </div>
+                        <DollarSign className="absolute -bottom-4 -right-4 w-32 h-32 opacity-10 rotate-12" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Lado Derecho: Vista Previa */}
+              <div className="flex-1 flex flex-col bg-slate-100/30">
+                {archivoPreview ? (
+                  <div className="flex-1 flex flex-col overflow-hidden">
+                    <div className="bg-white border-b p-3 flex items-center justify-between shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-purple-600 rounded flex items-center justify-center text-white">
+                          <FileText className="w-4 h-4" />
+                        </div>
+                        <p className="text-sm font-semibold truncate max-w-md">{archivoPreview.nombre}</p>
+                      </div>
+                      <Button variant="outline" size="sm" asChild>
+                        <a href={archivoPreview.url} target="_blank" rel="noopener noreferrer">
+                          <Download className="w-4 h-4 mr-2" /> Descargar
+                        </a>
                       </Button>
                     </div>
-
-                    {!ejecucionSeleccionada.archivosAdjuntos || ejecucionSeleccionada.archivosAdjuntos.length === 0 ? (
-                      <div className="text-center py-8 text-slate-500 bg-slate-50 rounded-lg border border-dashed">
-                        <Paperclip className="w-8 h-8 mx-auto mb-2 text-slate-400" />
-                        <p>No hay archivos adjuntos para esta ejecución.</p>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-4">
-                        {ejecucionSeleccionada.archivosAdjuntos.map(archivo => (
-                          <Card key={archivo.id}>
-                            <CardContent className="p-4 flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <FileText className="w-5 h-5 text-blue-600" />
-                                <div>
-                                  <h4 className="font-medium text-sm">{archivo.nombre}</h4>
-                                  <p className="text-xs text-slate-500">Categoría ID: {archivo.categoriaId}</p>
-                                </div>
-                              </div>
-                              <Button size="sm" variant="ghost" asChild>
-                                <a href={archivo.url} target="_blank" rel="noreferrer"><Download className="w-4 h-4" /></a>
-                              </Button>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </TabsContent>
-
-                {/* Tab Finanzas */}
-                <TabsContent value="finanzas">
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-4 bg-slate-50 rounded-lg border">
-                        <h4 className="text-sm font-semibold text-slate-700 mb-2">Orden de Compra</h4>
-                        <p className="text-lg">{ejecucionSeleccionada.financiero?.ordenCompra || 'No registrada'}</p>
-                      </div>
-                      <div className="p-4 bg-slate-50 rounded-lg border">
-                        <h4 className="text-sm font-semibold text-slate-700 mb-2">Valor Acordado</h4>
-                        <p className="text-2xl font-bold text-blue-700">
-                          ${(ejecucionSeleccionada.financiero?.valor || 0).toLocaleString('es-CL')}
-                        </p>
-                      </div>
-                      <div className="p-4 bg-slate-50 rounded-lg border">
-                        <h4 className="text-sm font-semibold text-slate-700 mb-2">Forma de Pago</h4>
-                        <p>{ejecucionSeleccionada.financiero?.formaPago || 'No definida'}</p>
-                      </div>
-                      <div className="p-4 bg-slate-50 rounded-lg border">
-                        <h4 className="text-sm font-semibold text-slate-700 mb-2">Fecha de Pago</h4>
-                        <p>{ejecucionSeleccionada.financiero?.fechaPago || 'No definida'}</p>
-                      </div>
+                    <div className="flex-1 p-4 overflow-hidden">
+                      {archivoPreview.url.toLowerCase().endsWith('.pdf') ? (
+                        <iframe 
+                          src={`${archivoPreview.url}#toolbar=0`} 
+                          className="w-full h-full border-0 rounded-xl shadow-2xl bg-white"
+                          title="Preview PDF"
+                        />
+                      ) : /\.(jpg|jpeg|png|gif|webp)$/i.test(archivoPreview.url) ? (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <img 
+                            src={archivoPreview.url} 
+                            alt="Preview" 
+                            className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
+                          />
+                        </div>
+                      ) : (
+                        <div className="h-full flex flex-col items-center justify-center bg-white rounded-xl shadow-lg p-12 text-center">
+                          <AlertTriangle className="w-16 h-16 text-amber-500 mb-4" />
+                          <h4 className="text-xl font-bold mb-2">Vista previa no soportada</h4>
+                          <p className="text-slate-500 mb-8">El formato de este archivo no permite previsualización directa. Por favor descárgalo.</p>
+                          <Button asChild><a href={archivoPreview.url} target="_blank" rel="noreferrer">Descargar Archivo</a></Button>
+                        </div>
+                      )}
                     </div>
                   </div>
-                </TabsContent>
-              </Tabs>
-            </>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-12 text-center">
+                    <div className="w-24 h-24 bg-slate-200/50 rounded-full flex items-center justify-center mb-6">
+                      <Sparkles className="w-12 h-12 text-purple-400" />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-600 mb-2">Monitor de Documentación</h3>
+                    <p className="max-w-xs text-sm">Selecciona un archivo de ejecución o un documento SAG de un alumno para previsualizarlo aquí.</p>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>
@@ -905,5 +957,5 @@ function StatusBadge({ status }: { status: 'valido' | 'pendiente' | 'faltante' }
     faltante: { class: 'bg-slate-300', label: 'Faltante' }
   };
   const { class: className, label } = config[status];
-  return <Badge className={`${className} text-xs`}>{label}</Badge>;
+  return <Badge className={`${className} text-[10px] h-5 cursor-pointer`}>{label}</Badge>;
 }
