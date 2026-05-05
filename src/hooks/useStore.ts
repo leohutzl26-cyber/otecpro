@@ -346,14 +346,30 @@ export const useStore = create<StoreState>((set, get) => ({
   addCurso: async (curso) => {
     const newCurso = { ...curso, id: `cur${Date.now()}` } as Curso;
     set(state => ({ cursos: [...state.cursos, newCurso] }));
+
+    const dbCurso = {
+      codigo_interno: newCurso.codigoInterno,
+      codigo_sence: newCurso.codigoSence || null,
+      nombre: newCurso.nombre,
+      descripcion: newCurso.descripcion || null,
+      horas_totales: newCurso.horasTotales,
+      modalidad: newCurso.modalidad,
+      es_sag: newCurso.esSAG || false,
+      temario_url: newCurso.temarioUrl || null,
+      activo: newCurso.activo !== undefined ? newCurso.activo : true
+    };
+
     try {
-      const { error } = await supabase.from('cursos').insert(newCurso);
+      const { data, error } = await supabase.from('cursos').insert(dbCurso).select().single();
       if (error) throw error;
-    } catch (error) {
+      const cursoConId = { ...newCurso, id: data.id };
+      set(state => ({ cursos: state.cursos.map(c => c.id === newCurso.id ? cursoConId : c) }));
+      return cursoConId;
+    } catch (error: any) {
       set(state => ({ cursos: state.cursos.filter(c => c.id !== newCurso.id) }));
-      toast.error('Error al guardar el curso'); throw error;
+      toast.error(`Error al guardar el curso: ${error.message || 'Desconocido'}`);
+      throw error;
     }
-    return newCurso;
   },
 
   updateCurso: async (id, data) => {
@@ -418,14 +434,31 @@ export const useStore = create<StoreState>((set, get) => ({
   addRelator: async (relator) => {
     const newRelator = { ...relator, id: `r${Date.now()}` } as Relator;
     set(state => ({ relatores: [...state.relatores, newRelator] }));
+
+    const dbRelator = {
+      rut: newRelator.rut,
+      nombre: newRelator.nombre,
+      profesion: newRelator.profesion,
+      especialidad: newRelator.especialidad,
+      valor_hora: newRelator.valorHora,
+      curriculum_url: newRelator.curriculumUrl || null,
+      titulos_url: newRelator.titulosUrl || null,
+      email: newRelator.email,
+      telefono: newRelator.telefono,
+      activo: newRelator.activo !== undefined ? newRelator.activo : true
+    };
+
     try {
-      const { error } = await supabase.from('relatores').insert(newRelator);
+      const { data, error } = await supabase.from('relatores').insert(dbRelator).select().single();
       if (error) throw error;
-    } catch (error) {
+      const relatorConId = { ...newRelator, id: data.id };
+      set(state => ({ relatores: state.relatores.map(r => r.id === newRelator.id ? relatorConId : r) }));
+      return relatorConId;
+    } catch (error: any) {
       set(state => ({ relatores: state.relatores.filter(r => r.id !== newRelator.id) }));
-      toast.error('Error al guardar el relator'); throw error;
+      toast.error(`Error al guardar el relator: ${error.message || 'Desconocido'}`);
+      throw error;
     }
-    return newRelator;
   },
 
   updateRelator: async (id, data) => {
