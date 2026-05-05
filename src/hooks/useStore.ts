@@ -95,7 +95,7 @@ export const useStore = create<StoreState>((set, get) => ({
         { data: cData }, { data: curData }, { data: rData }, 
         { data: eData }, { data: cotData }, { data: tData }, { data: aData }, { data: catData }
       ] = await Promise.all([
-        supabase.from('clientes').select('*'),
+        supabase.from('clientes').select('*, contactos(*)'),
         supabase.from('cursos').select('*'),
         supabase.from('relatores').select('*'),
         supabase.from('ejecuciones').select('*'),
@@ -106,7 +106,27 @@ export const useStore = create<StoreState>((set, get) => ({
       ]);
 
       set(state => ({
-        clientes: cData && cData.length > 0 ? cData as Cliente[] : state.clientes,
+        clientes: cData && cData.length > 0 ? cData.map((c: any) => ({
+          id: c.id,
+          rut: c.rut,
+          razonSocial: c.razon_social,
+          giro: c.giro,
+          direccion: c.direccion,
+          comuna: c.comuna,
+          region: c.region,
+          holding: c.holding,
+          contactos: c.contactos ? c.contactos.map((con: any) => ({
+            id: con.id,
+            nombre: con.nombre,
+            cargo: con.cargo,
+            email: con.email,
+            telefono: con.telefono,
+            esDecisor: con.es_decisor,
+            esCoordinador: con.es_coordinador
+          })) : [],
+          fechaRegistro: c.fecha_registro,
+          observaciones: c.observaciones
+        })) : state.clientes,
         cursos: curData && curData.length > 0 ? curData as Curso[] : state.cursos,
         relatores: rData && rData.length > 0 ? rData as Relator[] : state.relatores,
         ejecuciones: eData && eData.length > 0 ? eData as Ejecucion[] : state.ejecuciones,
@@ -131,28 +151,94 @@ export const useStore = create<StoreState>((set, get) => ({
 
   // --- CLIENTES ---
   addCliente: async (cliente) => {
-    const newCliente = { ...cliente, id: `c${Date.now()}` } as Cliente;
-    set(state => ({ clientes: [...state.clientes, newCliente] }));
+    // Preparar objeto para BD
+    const dbCliente = {
+      rut: cliente.rut,
+      razon_social: cliente.razonSocial,
+      giro: cliente.giro,
+      direccion: cliente.direccion,
+      comuna: cliente.comuna,
+      region: cliente.region,
+      holding: cliente.holding || null,
+      observaciones: cliente.observaciones || null
+    };
+
     try {
-      const { error } = await supabase.from('clientes').insert(newCliente);
+      // 1. Insertar cliente y obtener el UUID generado
+      const { data, error } = await supabase.from('clientes').insert(dbCliente).select().single();
       if (error) throw error;
+      
+      // 2. Insertar contactos si los hay
+      if (cliente.contactos && cliente.contactos.length > 0) {
+        const dbContactos = cliente.contactos.map(c => ({
+          cliente_id: data.id,
+          nombre: c.nombre,
+          cargo: c.cargo,
+          email: c.email,
+          telefono: c.telefono,
+          es_decisor: c.esDecisor,
+          es_coordinador: c.esCoordinador
+        }));
+        const { error: errorContactos } = await supabase.from('contactos').insert(dbContactos);
+        if (errorContactos) console.error("Error guardando contactos", errorContactos);
+      }
+
+      // 3. Crear objeto para el estado frontend
+      const newCliente = {
+        ...cliente,
+        id: data.id,
+        fechaRegistro: data.fecha_registro
+      } as Cliente;
+
+      set(state => ({ clientes: [...state.clientes, newCliente] }));
+      return newCliente;
     } catch (error) {
-      set(state => ({ clientes: state.clientes.filter(c => c.id !== newCliente.id) }));
-      toast.error('Error al guardar el cliente'); throw error;
+      toast.error('Error al guardar el cliente'); 
+      throw error;
     }
-    return newCliente;
   },
 
   updateCliente: async (id, data) => {
     const oldCliente = get().clientes.find(c => c.id === id);
     if (!oldCliente) return;
+    
     set(state => ({ clientes: state.clientes.map(c => c.id === id ? { ...c, ...data } : c) }));
+    
+    const dbUpdate: any = {};
+    if (data.rut !== undefined) dbUpdate.rut = data.rut;
+    if (data.razonSocial !== undefined) dbUpdate.razon_social = data.razonSocial;
+    if (data.giro !== undefined) dbUpdate.giro = data.giro;
+    if (data.direccion !== undefined) dbUpdate.direccion = data.direccion;
+    if (data.comuna !== undefined) dbUpdate.comuna = data.comuna;
+    if (data.region !== undefined) dbUpdate.region = data.region;
+    if (data.holding !== undefined) dbUpdate.holding = data.holding;
+    if (data.observaciones !== undefined) dbUpdate.observaciones = data.observaciones;
+
     try {
-      const { error } = await supabase.from('clientes').update(data).eq('id', id);
-      if (error) throw error;
+      if (Object.keys(dbUpdate).length > 0) {
+        const { error } = await supabase.from('clientes').update(dbUpdate).eq('id', id);
+        if (error) throw error;
+      }
+
+      if (data.contactos) {
+        await supabase.from('contactos').delete().eq('cliente_id', id);
+        if (data.contactos.length > 0) {
+          const dbContactos = data.contactos.map(c => ({
+            cliente_id: id,
+            nombre: c.nombre,
+            cargo: c.cargo,
+            email: c.email,
+            telefono: c.telefono,
+            es_decisor: c.esDecisor,
+            es_coordinador: c.esCoordinador
+          }));
+          await supabase.from('contactos').insert(dbContactos);
+        }
+      }
     } catch (error) {
       set(state => ({ clientes: state.clientes.map(c => c.id === id ? oldCliente : c) }));
-      toast.error('Error al actualizar el cliente'); throw error;
+      toast.error('Error al actualizar el cliente'); 
+      throw error;
     }
   },
 
