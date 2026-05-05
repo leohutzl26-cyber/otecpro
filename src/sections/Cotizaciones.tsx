@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
-  DollarSign, Users, Download, Paperclip, File, Image, FileText, CheckCircle, XCircle
+  DollarSign, Users, Download, Paperclip, File, FileText, CheckCircle, XCircle,
+  Send, Plus, Search, Calendar, MoreHorizontal, Edit
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
