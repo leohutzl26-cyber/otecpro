@@ -130,25 +130,37 @@ export const useStore = create<StoreState>((set, get) => ({
         cursos: curData && curData.length > 0 ? curData as Curso[] : state.cursos,
         relatores: rData && rData.length > 0 ? rData as Relator[] : state.relatores,
         ejecuciones: eData && eData.length > 0 ? eData as Ejecucion[] : state.ejecuciones,
-        cotizaciones: cotData && cotData.length > 0 ? cotData.map((cot: any) => ({
-          id: cot.id,
-          codigoUnico: cot.numero,
-          numero: cot.numero,
-          estado: cot.estado,
-          fechaPropuesta: cot.fecha,
-          nombre: cot.nombre_servicio || 'Cotización Legado',
-          clienteId: cot.cliente_id,
-          validezPropuesta: cot.validez_propuesta || `${cot.vigencia_dias} días`,
-          perteneceCatalogo: cot.pertenece_catalogo || false,
-          cursoId: cot.curso_id,
-          descripcion: cot.observaciones || '',
-          fechaTentativa: cot.fecha_tentativa || '',
-          precio: cot.total,
-          archivosAdjuntos: cot.archivos_adjuntos || [],
-          subtotal: cot.subtotal,
-          iva: cot.iva,
-          total: cot.total
-        })) : state.cotizaciones,
+        cotizaciones: cotData && cotData.length > 0 ? cotData.map((cot: any) => {
+          let extra = {} as any;
+          try {
+            if (cot.observaciones && cot.observaciones.startsWith('{')) {
+              extra = JSON.parse(cot.observaciones);
+            } else {
+              extra = { descripcion: cot.observaciones };
+            }
+          } catch (e) {
+            extra = { descripcion: cot.observaciones };
+          }
+          return {
+            id: cot.id,
+            codigoUnico: cot.numero,
+            numero: cot.numero,
+            estado: cot.estado,
+            fechaPropuesta: cot.fecha,
+            nombre: extra.nombre || 'Cotización Legado',
+            clienteId: cot.cliente_id,
+            validezPropuesta: extra.validezPropuesta || `${cot.vigencia_dias} días`,
+            perteneceCatalogo: extra.perteneceCatalogo || false,
+            cursoId: extra.cursoId || null,
+            descripcion: extra.descripcion || '',
+            fechaTentativa: extra.fechaTentativa || '',
+            precio: cot.total,
+            archivosAdjuntos: extra.archivosAdjuntos || [],
+            subtotal: cot.subtotal,
+            iva: cot.iva,
+            total: cot.total
+          };
+        }) : state.cotizaciones,
         transacciones: tData && tData.length > 0 ? tData as Transaccion[] : state.transacciones,
         alertas: aData && aData.length > 0 ? aData as Alerta[] : state.alertas,
         categoriasArchivos: catData && catData.length > 0 ? catData.map((cat: any) => ({
@@ -394,23 +406,28 @@ export const useStore = create<StoreState>((set, get) => ({
     const { cotizaciones } = get();
     const codigoUnico = `COT-2025-${String(cotizaciones.length + 1).padStart(3, '0')}`;
     
-    // Preparar para la BD
+    // Serializar campos nuevos en observaciones para no requerir alterar la tabla en BD
+    const observacionesMeta = JSON.stringify({
+      nombre: cotizacion.nombre,
+      descripcion: cotizacion.descripcion,
+      validezPropuesta: cotizacion.validezPropuesta,
+      perteneceCatalogo: cotizacion.perteneceCatalogo,
+      cursoId: cotizacion.cursoId,
+      fechaTentativa: cotizacion.fechaTentativa,
+      archivosAdjuntos: cotizacion.archivosAdjuntos || []
+    });
+
+    // Preparar para la BD usando solo columnas originales seguras
     const dbCotizacion = {
       numero: codigoUnico,
       cliente_id: cotizacion.clienteId,
       estado: cotizacion.estado || 'En Preparación',
       fecha: cotizacion.fechaPropuesta || new Date().toISOString().split('T')[0],
-      nombre_servicio: cotizacion.nombre,
-      validez_propuesta: cotizacion.validezPropuesta,
-      pertenece_catalogo: cotizacion.perteneceCatalogo || false,
-      curso_id: cotizacion.cursoId || null,
-      observaciones: cotizacion.descripcion || null,
-      fecha_tentativa: cotizacion.fechaTentativa || null,
       total: cotizacion.precio || 0,
       subtotal: cotizacion.precio || 0,
       iva: 0,
-      vigencia_dias: 30, // Default for backward compatibility
-      archivos_adjuntos: cotizacion.archivosAdjuntos || []
+      vigencia_dias: 30, // Default
+      observaciones: observacionesMeta
     };
 
     try {
@@ -440,17 +457,27 @@ export const useStore = create<StoreState>((set, get) => ({
     const dbUpdate: any = {};
     if (data.estado !== undefined) dbUpdate.estado = data.estado;
     if (data.fechaPropuesta !== undefined) dbUpdate.fecha = data.fechaPropuesta;
-    if (data.nombre !== undefined) dbUpdate.nombre_servicio = data.nombre;
-    if (data.validezPropuesta !== undefined) dbUpdate.validez_propuesta = data.validezPropuesta;
-    if (data.perteneceCatalogo !== undefined) dbUpdate.pertenece_catalogo = data.perteneceCatalogo;
-    if (data.cursoId !== undefined) dbUpdate.curso_id = data.cursoId;
-    if (data.descripcion !== undefined) dbUpdate.observaciones = data.descripcion;
-    if (data.fechaTentativa !== undefined) dbUpdate.fecha_tentativa = data.fechaTentativa;
     if (data.precio !== undefined) {
       dbUpdate.total = data.precio;
       dbUpdate.subtotal = data.precio;
     }
-    if (data.archivosAdjuntos !== undefined) dbUpdate.archivos_adjuntos = data.archivosAdjuntos;
+
+    // Actualizar metadata si alguno de los campos virtuales cambia
+    const needsMetaUpdate = ['nombre', 'descripcion', 'validezPropuesta', 'perteneceCatalogo', 'cursoId', 'fechaTentativa', 'archivosAdjuntos']
+      .some(k => Object.prototype.hasOwnProperty.call(data, k));
+      
+    if (needsMetaUpdate) {
+      const merged = { ...old, ...data };
+      dbUpdate.observaciones = JSON.stringify({
+        nombre: merged.nombre,
+        descripcion: merged.descripcion,
+        validezPropuesta: merged.validezPropuesta,
+        perteneceCatalogo: merged.perteneceCatalogo,
+        cursoId: merged.cursoId,
+        fechaTentativa: merged.fechaTentativa,
+        archivosAdjuntos: merged.archivosAdjuntos || []
+      });
+    }
 
     try {
       if (Object.keys(dbUpdate).length > 0) {
