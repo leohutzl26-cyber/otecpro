@@ -413,7 +413,7 @@ export default function Cursos({ store }: CursosProps) {
                       <li className="flex items-start gap-2">• Poder simple retiro credenciales</li>
                     </ul>
                   </div>
-                </div>
+                )}
 
                 <div className="pt-4 space-y-3">
                   <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Documentos Rápidos</p>
