@@ -133,7 +133,11 @@ export const useStore = create<StoreState>((set, get) => ({
         cotizaciones: cotData && cotData.length > 0 ? cotData as Cotizacion[] : state.cotizaciones,
         transacciones: tData && tData.length > 0 ? tData as Transaccion[] : state.transacciones,
         alertas: aData && aData.length > 0 ? aData as Alerta[] : state.alertas,
-        categoriasArchivos: catData && catData.length > 0 ? catData as import('@/types').CategoriaArchivo[] : state.categoriasArchivos,
+        categoriasArchivos: catData && catData.length > 0 ? catData.map((cat: any) => ({
+          id: cat.id,
+          nombre: cat.nombre,
+          esPorDefecto: cat.es_por_defecto
+        })) : state.categoriasArchivos,
       }));
     } catch (error) {
       console.error('Error cargando datos de Supabase:', error);
@@ -586,9 +590,10 @@ export const useStore = create<StoreState>((set, get) => ({
 
   addCategoriaArchivo: async (nombre) => {
     const nueva = { id: `cat_${Date.now()}`, nombre, esPorDefecto: false };
+    const dbCat = { id: nueva.id, nombre: nueva.nombre, es_por_defecto: nueva.esPorDefecto };
     set(s => ({ categoriasArchivos: [...s.categoriasArchivos, nueva] }));
     try {
-      const { error } = await supabase.from('categorias_archivos').insert(nueva);
+      const { error } = await supabase.from('categorias_archivos').insert(dbCat);
       if (error) throw error;
     } catch (e) {
       set(s => ({ categoriasArchivos: s.categoriasArchivos.filter(c => c.id !== nueva.id) }));
