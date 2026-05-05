@@ -155,8 +155,31 @@ export const useStore = create<StoreState>((set, get) => ({
         cursos: curData && curData.length > 0 ? curData as Curso[] : state.cursos,
         relatores: rData && rData.length > 0 ? rData as Relator[] : state.relatores,
         ejecuciones: eData && eData.length > 0 ? eData.map((e: any) => ({
-          ...e,
           id: e.id,
+          codigoUnico: e.codigo_unico || e.id,
+          cursoId: e.curso_id,
+          clienteId: e.cliente_id,
+          codigoSence: e.codigo_sence,
+          idAcciones: e.id_acciones || [],
+          idAccionSence: e.id_accion_sence,
+          estado: e.estado,
+          lugaresEjecucion: e.lugar,
+          configuracion: {
+            modalidad: e.modalidad || 'Presencial',
+            totalHoras: e.total_horas || 0,
+            sesiones: [],
+            lugar: e.lugar,
+            urlPlataforma: e.url_plataforma
+          },
+          relatorId: e.relator_id,
+          fechaInicio: e.fecha_inicio,
+          fechaTermino: e.fecha_termino,
+          horario: e.horario,
+          costosDirectosAsociados: [],
+          cotizacionId: e.cotizacion_id,
+          observaciones: e.observaciones,
+          financiero: { valor: 0 },
+          archivosAdjuntos: [],
           participantes: mappedParticipantes.filter((p: any) => p.ejecucionId === e.id)
         })) as Ejecucion[] : state.ejecuciones,
         cotizaciones: cotData && cotData.length > 0 ? cotData.map((cot: any) => {
