@@ -706,8 +706,10 @@ export const useStore = create<StoreState>((set, get) => ({
         ejecuciones: state.ejecuciones.map(e => e.id === ejecucionId ? { ...e, participantes: [...(e.participantes || []), ...newParts] } : e)
       }));
       toast.success(`${newParts.length} alumnos importados con éxito`);
-    } catch (error) {
-      toast.error('Error al importar nómina de participantes'); throw error;
+    } catch (error: any) {
+      console.error('Error importando participantes:', error);
+      toast.error(`Error al importar nómina: ${error.message || 'Desconocido'}`);
+      throw error;
     }
   },
 
