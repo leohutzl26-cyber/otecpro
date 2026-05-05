@@ -245,7 +245,7 @@ function App() {
       </aside>
 
       {/* Contenido Principal */}
-      <main className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-16'}`}>
+      <main className={`flex-1 min-w-0 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-16'}`}>
         {/* Header */}
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 sticky top-0 z-40">
           <div>
@@ -338,7 +338,7 @@ function App() {
         </header>
 
         {/* Contenido del Módulo */}
-        <div className="p-6">
+        <div className="p-6 overflow-x-hidden">
           {renderModulo()}
         </div>
       </main>
