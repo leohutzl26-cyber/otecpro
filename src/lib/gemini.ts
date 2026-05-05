@@ -31,11 +31,9 @@ Tu respuesta debe empezar directamente con [ y terminar con ]. Nada más.`;
 
 // Lista de modelos a intentar en orden de prioridad
 const MODELS_TO_TRY = [
+  'gemini-2.5-flash',
   'gemini-2.0-flash-lite',
-  'gemini-1.5-flash-latest',
-  'gemini-1.5-flash-8b',
   'gemini-2.0-flash',
-  'gemini-1.5-flash',
 ];
 
 /**
