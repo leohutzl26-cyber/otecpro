@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
 import type { 
   Cliente, Curso, Relator, Ejecucion, Cotizacion, Transaccion, 
-  Alerta, Participante, ArchivoAdjunto, ItemCotizacion
+  Alerta, Participante, ArchivoAdjunto, ItemCotizacion, TipoArchivo
 } from '@/types';
 import { 
   clientesMock, cursosMock, relatoresMock, ejecucionesMock, 
@@ -436,7 +436,7 @@ export const useStore = create<StoreState>((set, get) => ({
       const fileExt = file.name.split('.').pop();
       const fileName = `${cursoId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('archivos_cursos')
         .upload(fileName, file);
 
