@@ -21,6 +21,7 @@ import Login from '@/sections/Login';
 // Módulos
 import Dashboard from '@/sections/Dashboard';
 import Clientes from '@/sections/Clientes';
+import Alumnos from '@/sections/Alumnos';
 import Cotizaciones from '@/sections/Cotizaciones';
 import Cursos from '@/sections/Cursos';
 import Ejecuciones from '@/sections/Ejecuciones';
@@ -34,7 +35,7 @@ import Configuracion from '@/sections/Configuracion';
 // ERP OTEC PRO - APLICACIÓN PRINCIPAL
 // ============================================
 
-type Modulo = 'dashboard' | 'clientes' | 'cotizaciones' | 'cursos' | 'ejecuciones' | 
+type Modulo = 'dashboard' | 'clientes' | 'alumnos' | 'cotizaciones' | 'cursos' | 'ejecuciones' | 
               'relatores' | 'finanzas' | 'calendario' | 'reportes' | 'configuracion';
 
 interface MenuItem {
@@ -47,6 +48,7 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'clientes', label: 'Clientes', icon: Briefcase },
+  { id: 'alumnos', label: 'Alumnos', icon: GraduationCap },
   { id: 'cotizaciones', label: 'Cotizaciones', icon: FileText },
   { id: 'cursos', label: 'Catálogo de Cursos', icon: BookOpen },
   { id: 'ejecuciones', label: 'Ejecuciones', icon: GraduationCap },
@@ -119,6 +121,8 @@ function App() {
         return <Dashboard store={store} onNavigate={setModuloActivo} />;
       case 'clientes':
         return <Clientes store={store} />;
+      case 'alumnos':
+        return <Alumnos store={store} />;
       case 'cotizaciones':
         return <Cotizaciones store={store} />;
       case 'cursos':

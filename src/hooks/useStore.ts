@@ -75,6 +75,10 @@ export interface StoreState {
   getMargenCurso: (ejecucionId: string) => { ingresosNetos: number; gastosDirectos: number; margenBruto: number; margenPorcentaje: number };
   getEstadoResultados: (periodo: string) => { periodo: string; ingresosTotales: number; gastosDirectos: number; margenContribucion: number; gastosIndirectos: number; utilidadNeta: number; utilidadPorcentaje: number };
   getFlujoCaja: (dias?: number) => { fecha: string; ingresosProyectados: number; ingresosReales: number; egresosProyectados: number; egresosReales: number; saldoProyectado: number; saldoReal: number }[];
+  
+  // Alumnos
+  getTodosLosAlumnos: () => Participante[];
+  addParticipantesMasivo: (ejecucionId: string, participantes: Partial<Participante>[]) => Promise<void>;
 }
 
 export const useStore = create<StoreState>((set, get) => ({
@@ -103,7 +107,28 @@ export const useStore = create<StoreState>((set, get) => ({
         supabase.from('transacciones').select('*'),
         supabase.from('alertas').select('*'),
         supabase.from('categorias_archivos').select('*'),
+        supabase.from('participantes').select('*'),
       ]);
+
+      // Mapear participantes
+      const mappedParticipantes = pData && pData.length > 0 ? pData.map((p: any) => ({
+        id: p.id,
+        rut: p.rut,
+        nombre: p.nombre,
+        apellido: p.apellido,
+        email: p.email,
+        telefono: p.telefono,
+        nivelEducacional: p.nivel_educacional,
+        asistenciaProgreso: p.asistencia_progreso || 0,
+        notaFinal: p.nota_final,
+        estadoSAG: p.estado_sag || 'No Aplica',
+        documentosSAG: {
+          colinesterasa: { url: p.doc_col_url, fechaExamen: p.doc_col_fecha_examen, fechaVencimiento: p.doc_col_fecha_vencimiento, valido: p.doc_col_valido || false },
+          certificadoMedico: { url: p.doc_med_url, valido: p.doc_med_valido || false },
+          poderSimple: { url: p.doc_pod_url, valido: p.doc_pod_valido || false }
+        },
+        ejecucionId: p.ejecucion_id // Added custom field for joining
+      })) : [];
 
       set(state => ({
         clientes: cData && cData.length > 0 ? cData.map((c: any) => ({
@@ -129,7 +154,11 @@ export const useStore = create<StoreState>((set, get) => ({
         })) : state.clientes,
         cursos: curData && curData.length > 0 ? curData as Curso[] : state.cursos,
         relatores: rData && rData.length > 0 ? rData as Relator[] : state.relatores,
-        ejecuciones: eData && eData.length > 0 ? eData as Ejecucion[] : state.ejecuciones,
+        ejecuciones: eData && eData.length > 0 ? eData.map((e: any) => ({
+          ...e,
+          id: e.id,
+          participantes: mappedParticipantes.filter((p: any) => p.ejecucionId === e.id)
+        })) as Ejecucion[] : state.ejecuciones,
         cotizaciones: cotData && cotData.length > 0 ? cotData.map((cot: any) => {
           let extra = {} as any;
           try {
@@ -558,33 +587,85 @@ export const useStore = create<StoreState>((set, get) => ({
   },
 
   addParticipante: async (ejecucionId, participante) => {
-    const ejecucion = get().ejecuciones.find(e => e.id === ejecucionId);
-    if (!ejecucion) return;
-    const newPart = { ...participante, id: `part-${Date.now()}` } as Participante;
-    const newArray = [...ejecucion.participantes, newPart];
-
-    set(state => ({ ejecuciones: state.ejecuciones.map(e => e.id === ejecucionId ? { ...e, participantes: newArray } : e) }));
+    const dbParticipante = {
+      ejecucion_id: ejecucionId,
+      rut: participante.rut,
+      nombre: participante.nombre,
+      apellido: participante.apellido,
+      email: participante.email,
+      telefono: participante.telefono,
+      nivel_educacional: participante.nivelEducacional
+    };
     try {
-      const { error } = await supabase.from('ejecuciones').update({ participantes: newArray }).eq('id', ejecucionId);
+      const { data, error } = await supabase.from('participantes').insert(dbParticipante).select().single();
       if (error) throw error;
+      
+      const newPart = { ...participante, id: data.id } as Participante;
+      set(state => ({
+        ejecuciones: state.ejecuciones.map(e => e.id === ejecucionId ? { ...e, participantes: [...(e.participantes || []), newPart] } : e)
+      }));
     } catch (error) {
-      set(state => ({ ejecuciones: state.ejecuciones.map(e => e.id === ejecucionId ? ejecucion : e) }));
-      toast.error('Error al agregar participante'); throw error;
+      toast.error('Error al agregar participante en BD'); throw error;
+    }
+  },
+
+  addParticipantesMasivo: async (ejecucionId, participantes) => {
+    const dbParticipantes = participantes.map(p => ({
+      ejecucion_id: ejecucionId,
+      rut: p.rut || '',
+      nombre: p.nombre || '',
+      apellido: p.apellido || '',
+      email: p.email || null,
+      telefono: p.telefono || null
+    }));
+
+    try {
+      const { data, error } = await supabase.from('participantes').insert(dbParticipantes).select();
+      if (error) throw error;
+
+      const newParts = data.map((d: any) => ({
+        id: d.id,
+        rut: d.rut,
+        nombre: d.nombre,
+        apellido: d.apellido,
+        email: d.email,
+        telefono: d.telefono,
+        asistenciaProgreso: d.asistencia_progreso,
+        documentosSAG: { colinesterasa: {}, certificadoMedico: {}, poderSimple: {} }
+      })) as Participante[];
+
+      set(state => ({
+        ejecuciones: state.ejecuciones.map(e => e.id === ejecucionId ? { ...e, participantes: [...(e.participantes || []), ...newParts] } : e)
+      }));
+      toast.success(`${newParts.length} alumnos importados con éxito`);
+    } catch (error) {
+      toast.error('Error al importar nómina de participantes'); throw error;
     }
   },
 
   updateParticipante: async (ejecucionId, participanteId, data) => {
     const ejecucion = get().ejecuciones.find(e => e.id === ejecucionId);
     if (!ejecucion) return;
-    const newArray = ejecucion.participantes.map(p => p.id === participanteId ? { ...p, ...data } : p);
+    const oldArray = ejecucion.participantes || [];
+    const newArray = oldArray.map(p => p.id === participanteId ? { ...p, ...data } : p);
 
     set(state => ({ ejecuciones: state.ejecuciones.map(e => e.id === ejecucionId ? { ...e, participantes: newArray } : e) }));
-    try {
-      const { error } = await supabase.from('ejecuciones').update({ participantes: newArray }).eq('id', ejecucionId);
-      if (error) throw error;
-    } catch (error) {
-      set(state => ({ ejecuciones: state.ejecuciones.map(e => e.id === ejecucionId ? ejecucion : e) }));
-      toast.error('Error al actualizar participante'); throw error;
+    
+    const dbUpdate: any = {};
+    if (data.rut !== undefined) dbUpdate.rut = data.rut;
+    if (data.nombre !== undefined) dbUpdate.nombre = data.nombre;
+    if (data.apellido !== undefined) dbUpdate.apellido = data.apellido;
+    if (data.email !== undefined) dbUpdate.email = data.email;
+    if (data.telefono !== undefined) dbUpdate.telefono = data.telefono;
+
+    if (Object.keys(dbUpdate).length > 0) {
+      try {
+        const { error } = await supabase.from('participantes').update(dbUpdate).eq('id', participanteId);
+        if (error) throw error;
+      } catch (error) {
+        set(state => ({ ejecuciones: state.ejecuciones.map(e => e.id === ejecucionId ? { ...e, participantes: oldArray } : e) }));
+        toast.error('Error al actualizar participante'); throw error;
+      }
     }
   },
 
@@ -768,6 +849,23 @@ export const useStore = create<StoreState>((set, get) => ({
     const utilidadPorcentaje = ingresosNetos > 0 ? (utilidadNeta / ingresosNetos) * 100 : 0;
     
     return { periodo, ingresosTotales: ingresosNetos, gastosDirectos, margenContribucion, gastosIndirectos, utilidadNeta, utilidadPorcentaje };
+  },
+
+  getTodosLosAlumnos: () => {
+    const todos: (Participante & { cursoNombre?: string, ejecucionCodigo?: string, ejecucionId?: string })[] = [];
+    get().ejecuciones.forEach(e => {
+      if (e.participantes) {
+        e.participantes.forEach(p => {
+          todos.push({
+            ...p,
+            ejecucionId: e.id,
+            ejecucionCodigo: e.codigoUnico,
+            cursoNombre: e.curso?.nombre || 'Curso Desconocido'
+          });
+        });
+      }
+    });
+    return todos;
   },
 
   getFlujoCaja: (dias = 30) => {

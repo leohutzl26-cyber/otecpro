@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { 
   Search, Calendar, Users, X,
   Edit, MoreHorizontal, FileText, CheckCircle, AlertTriangle,
-  Clock, Upload, Download, GraduationCap, DollarSign, Paperclip, Plus
+  Clock, Upload, Download, GraduationCap, DollarSign, Paperclip, Plus, Sparkles, Loader2, Save
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,8 +17,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
+import { toast } from 'sonner';
 import type { Store } from '@/hooks/useStore';
 import type { Ejecucion, Participante, EstadoEjecucion } from '@/types';
+import { extractParticipantesFromFile, type ExtractedParticipante } from '@/lib/gemini';
 
 // ============================================
 // MÓDULO EJECUCIONES - ERP OTEC PRO
@@ -45,6 +47,53 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
     archivosAdjuntos: [],
     financiero: { valor: 0 }
   });
+
+  // IA Import States
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [extractedStudents, setExtractedStudents] = useState<ExtractedParticipante[]>([]);
+  const [isSavingStudents, setIsSavingStudents] = useState(false);
+
+  const handleImportSubmit = async () => {
+    if (!importFile) {
+      toast.error('Por favor selecciona un archivo (PDF o Imagen).');
+      return;
+    }
+    try {
+      setIsExtracting(true);
+      const data = await extractParticipantesFromFile(importFile);
+      setExtractedStudents(data);
+      if (data.length === 0) {
+        toast.warning('La IA no encontró alumnos en este documento.');
+      } else {
+        toast.success(`Se encontraron ${data.length} alumnos. Por favor revisa la información.`);
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Error al analizar el documento');
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
+  const handleSaveImportedStudents = async () => {
+    if (!ejecucionSeleccionada || extractedStudents.length === 0) return;
+    try {
+      setIsSavingStudents(true);
+      await store.addParticipantesMasivo(ejecucionSeleccionada.id, extractedStudents);
+      setIsImportModalOpen(false);
+      setExtractedStudents([]);
+      setImportFile(null);
+      
+      // Update UI with newly fetched ejecucion (so it shows in the modal)
+      const updatedE = store.getEjecucionById(ejecucionSeleccionada.id);
+      if (updatedE) setEjecucionSeleccionada(updatedE);
+    } catch (error) {
+      // Error handled by store
+    } finally {
+      setIsSavingStudents(false);
+    }
+  };
 
   const handleCrear = async () => {
     try {
@@ -445,10 +494,25 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
                       <h4 className="font-medium text-slate-700">
                         Total: {ejecucionSeleccionada.participantes?.length || 0} participantes
                       </h4>
-                      <Button size="sm">
-                        <Upload className="w-4 h-4 mr-2" />
-                        Cargar Excel
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          className="text-purple-600 border-purple-200 hover:bg-purple-50"
+                          onClick={() => {
+                            setIsImportModalOpen(true);
+                            setExtractedStudents([]);
+                            setImportFile(null);
+                          }}
+                        >
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Importar Nómina IA
+                        </Button>
+                        <Button size="sm">
+                          <Upload className="w-4 h-4 mr-2" />
+                          Cargar Excel
+                        </Button>
+                      </div>
                     </div>
 
                     <div className="border rounded-lg overflow-x-auto">
@@ -694,6 +758,124 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancelar</Button>
             <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleCrear}>Crear Ejecución</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialogo Importar IA */}
+      <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-purple-600" />
+              Importar Nómina con IA
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="bg-purple-50 text-purple-800 p-4 rounded-lg text-sm">
+              Sube la <b>Orden de Compra</b> o el documento PDF/Imagen que contenga la lista de alumnos. 
+              La inteligencia artificial de Gemini extraerá automáticamente los RUT, nombres y correos.
+            </div>
+
+            <div className="flex gap-4 items-end">
+              <div className="flex-1 space-y-2">
+                <label className="text-sm font-medium">Documento (PDF, PNG, JPG)</label>
+                <Input 
+                  type="file" 
+                  accept=".pdf,image/*" 
+                  onChange={e => setImportFile(e.target.files?.[0] || null)}
+                />
+              </div>
+              <Button 
+                className="bg-purple-600 hover:bg-purple-700" 
+                onClick={handleImportSubmit}
+                disabled={!importFile || isExtracting}
+              >
+                {isExtracting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                {isExtracting ? 'Analizando...' : 'Extraer Datos'}
+              </Button>
+            </div>
+
+            {extractedStudents.length > 0 && (
+              <div className="mt-6 border rounded-lg overflow-hidden">
+                <div className="bg-slate-50 px-4 py-2 border-b flex justify-between items-center">
+                  <h4 className="font-medium text-sm">Vista Previa ({extractedStudents.length} alumnos)</h4>
+                  <p className="text-xs text-slate-500">Puedes editar estos datos antes de guardar</p>
+                </div>
+                <div className="max-h-64 overflow-y-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-100 text-slate-600 sticky top-0">
+                      <tr>
+                        <th className="p-2 text-left">RUT</th>
+                        <th className="p-2 text-left">Nombre</th>
+                        <th className="p-2 text-left">Apellido</th>
+                        <th className="p-2 text-left">Email</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {extractedStudents.map((s, i) => (
+                        <tr key={i}>
+                          <td className="p-1">
+                            <Input 
+                              className="h-8 text-xs" 
+                              value={s.rut} 
+                              onChange={(e) => {
+                                const newS = [...extractedStudents];
+                                newS[i].rut = e.target.value;
+                                setExtractedStudents(newS);
+                              }}
+                            />
+                          </td>
+                          <td className="p-1">
+                            <Input 
+                              className="h-8 text-xs" 
+                              value={s.nombre} 
+                              onChange={(e) => {
+                                const newS = [...extractedStudents];
+                                newS[i].nombre = e.target.value;
+                                setExtractedStudents(newS);
+                              }}
+                            />
+                          </td>
+                          <td className="p-1">
+                            <Input 
+                              className="h-8 text-xs" 
+                              value={s.apellido} 
+                              onChange={(e) => {
+                                const newS = [...extractedStudents];
+                                newS[i].apellido = e.target.value;
+                                setExtractedStudents(newS);
+                              }}
+                            />
+                          </td>
+                          <td className="p-1">
+                            <Input 
+                              className="h-8 text-xs" 
+                              value={s.email} 
+                              onChange={(e) => {
+                                const newS = [...extractedStudents];
+                                newS[i].email = e.target.value;
+                                setExtractedStudents(newS);
+                              }}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="p-3 bg-white border-t flex justify-end">
+                  <Button 
+                    onClick={handleSaveImportedStudents} 
+                    disabled={isSavingStudents}
+                  >
+                    {isSavingStudents ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                    Guardar y Añadir al Curso
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
