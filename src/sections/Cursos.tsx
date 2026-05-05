@@ -66,6 +66,8 @@ export default function Cursos({ store }: CursosProps) {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isArchivosOpen, setIsArchivosOpen] = useState(false);
   const [nuevoArchivo, setNuevoArchivo] = useState<Partial<ArchivoAdjunto>>({ tipo: 'documento', nombre: '', descripcion: '' });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Formulario
   const [formData, setFormData] = useState<Partial<Curso>>({
@@ -463,26 +465,49 @@ export default function Cursos({ store }: CursosProps) {
                     />
                   </div>
                   <div className="col-span-2 space-y-2">
-                    <Label>URL del archivo</Label>
+                    <Label>Archivo a subir</Label>
                     <Input 
-                      value={nuevoArchivo.url || ''} 
-                      onChange={e => setNuevoArchivo({...nuevoArchivo, url: e.target.value})}
-                      placeholder="https://ejemplo.com/archivo.pdf"
+                      type="file"
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setSelectedFile(file);
+                          if (!nuevoArchivo.nombre) {
+                            setNuevoArchivo(prev => ({...prev, nombre: file.name}));
+                          }
+                        }
+                      }}
                     />
                   </div>
                 </div>
                 <Button 
-                  onClick={() => {
-                    if (nuevoArchivo.nombre && nuevoArchivo.url) {
-                      addArchivoAdjunto(cursoSeleccionado.id, nuevoArchivo as Omit<ArchivoAdjunto, 'id' | 'fechaSubida'>);
-                      setNuevoArchivo({ tipo: 'documento', nombre: '', descripcion: '' });
+                  onClick={async () => {
+                    if (nuevoArchivo.nombre && selectedFile) {
+                      setIsUploading(true);
+                      try {
+                        await addArchivoAdjunto(cursoSeleccionado.id, { ...nuevoArchivo, url: '' } as ArchivoAdjunto, selectedFile);
+                        setNuevoArchivo({ tipo: 'documento', nombre: '', descripcion: '' });
+                        setSelectedFile(null);
+                        // Reset file input by clearing its value natively is hard without a ref, but we can manage
+                      } finally {
+                        setIsUploading(false);
+                      }
                     }
                   }}
-                  disabled={!nuevoArchivo.nombre || !nuevoArchivo.url}
+                  disabled={!nuevoArchivo.nombre || !selectedFile || isUploading}
                   className="w-full"
                 >
-                  <Upload className="w-4 h-4 mr-2" />
-                  Agregar Archivo
+                  {isUploading ? (
+                    <>
+                      <div className="w-4 h-4 mr-2 border-2 border-slate-400 border-t-white rounded-full animate-spin" />
+                      Subiendo archivo...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Agregar Archivo
+                    </>
+                  )}
                 </Button>
               </div>
 
@@ -529,7 +554,7 @@ export default function Cursos({ store }: CursosProps) {
                               variant="ghost" 
                               size="icon" 
                               className="text-red-500"
-                              onClick={() => deleteArchivoAdjunto(cursoSeleccionado.id, archivo.id)}
+                              onClick={() => deleteArchivoAdjunto(cursoSeleccionado.id, archivo.id, archivo.url)}
                             >
                               <Trash className="w-4 h-4" />
                             </Button>

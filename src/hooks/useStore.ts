@@ -35,8 +35,8 @@ export interface StoreState {
   addCurso: (curso: Omit<Curso, 'id'>) => Promise<Curso>;
   updateCurso: (id: string, data: Partial<Curso>) => Promise<void>;
   deleteCurso: (id: string) => Promise<void>;
-  addArchivoAdjunto: (cursoId: string, archivo: Omit<ArchivoAdjunto, 'id' | 'fechaSubida'>) => Promise<ArchivoAdjunto>;
-  deleteArchivoAdjunto: (cursoId: string, archivoId: string) => Promise<void>;
+  addArchivoAdjunto: (cursoId: string, archivo: Omit<ArchivoAdjunto, 'id' | 'fechaSubida' | 'url'>, file: File) => Promise<ArchivoAdjunto>;
+  deleteArchivoAdjunto: (cursoId: string, archivoId: string, url: string) => Promise<void>;
 
   // Relatores
   addRelator: (relator: Omit<Relator, 'id'>) => Promise<Relator>;
@@ -100,7 +100,7 @@ export const useStore = create<StoreState>((set, get) => ({
         { data: eData }, { data: cotData }, { data: tData }, { data: aData }, { data: catData }, { data: pData }
       ] = await Promise.all([
         supabase.from('clientes').select('*, contactos(*)'),
-        supabase.from('cursos').select('*'),
+        supabase.from('cursos').select('*, archivos_adjuntos(*)'),
         supabase.from('relatores').select('*'),
         supabase.from('ejecuciones').select('*'),
         supabase.from('cotizaciones').select('*'),
@@ -164,7 +164,15 @@ export const useStore = create<StoreState>((set, get) => ({
           esSAG: c.es_sag || false,
           temarioUrl: c.temario_url,
           activo: c.activo !== false,
-          archivosAdjuntos: c.archivosAdjuntos || []
+          archivosAdjuntos: c.archivos_adjuntos ? c.archivos_adjuntos.map((a: any) => ({
+            id: a.id,
+            nombre: a.nombre,
+            tipo: a.tipo,
+            url: a.url,
+            tamaño: a.tamano,
+            fechaSubida: a.fecha_subida,
+            descripcion: a.descripcion
+          })) : []
         })) : state.cursos,
         relatores: rData && rData.length > 0 ? rData.map((r: any) => ({
           id: r.id,
@@ -422,35 +430,93 @@ export const useStore = create<StoreState>((set, get) => ({
     }
   },
 
-  addArchivoAdjunto: async (cursoId, archivo) => {
-    const newArchivo: ArchivoAdjunto = { ...archivo, id: `arch${Date.now()}`, fechaSubida: new Date().toISOString().split('T')[0] };
-    const curso = get().cursos.find(c => c.id === cursoId);
-    if (!curso) throw new Error('Curso no encontrado');
-    
-    const newArchivos = [...curso.archivosAdjuntos, newArchivo];
-    set(state => ({ cursos: state.cursos.map(c => c.id === cursoId ? { ...c, archivosAdjuntos: newArchivos } : c) }));
+  addArchivoAdjunto: async (cursoId, archivo, file) => {
     try {
-      const { error } = await supabase.from('cursos').update({ archivosAdjuntos: newArchivos }).eq('id', cursoId);
-      if (error) throw error;
-    } catch (error) {
-      set(state => ({ cursos: state.cursos.map(c => c.id === cursoId ? curso : c) }));
-      toast.error('Error al adjuntar el archivo'); throw error;
+      // 1. Subir archivo a Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${cursoId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('archivos_cursos')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // 2. Obtener URL pública
+      const { data: { publicUrl } } = supabase.storage
+        .from('archivos_cursos')
+        .getPublicUrl(fileName);
+
+      // 3. Guardar en la base de datos (tabla archivos_adjuntos)
+      const dbArchivo = {
+        curso_id: cursoId,
+        nombre: archivo.nombre,
+        tipo: archivo.tipo,
+        url: publicUrl,
+        tamano: file.size,
+        descripcion: archivo.descripcion || null
+      };
+
+      const { data: insertData, error: insertError } = await supabase
+        .from('archivos_adjuntos')
+        .insert(dbArchivo)
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      const newArchivo: ArchivoAdjunto = {
+        id: insertData.id,
+        nombre: insertData.nombre,
+        tipo: insertData.tipo as TipoArchivo,
+        url: insertData.url,
+        tamaño: insertData.tamano,
+        fechaSubida: insertData.fecha_subida,
+        descripcion: insertData.descripcion
+      };
+
+      set(state => {
+        const curso = state.cursos.find(c => c.id === cursoId);
+        if (!curso) return state;
+        const newArchivos = [...curso.archivosAdjuntos, newArchivo];
+        return { cursos: state.cursos.map(c => c.id === cursoId ? { ...c, archivosAdjuntos: newArchivos } : c) };
+      });
+
+      toast.success('Archivo adjuntado correctamente');
+      return newArchivo;
+    } catch (error: any) {
+      console.error('Error adjuntando archivo:', error);
+      toast.error(`Error al adjuntar el archivo: ${error.message || 'Desconocido'}`);
+      throw error;
     }
-    return newArchivo;
   },
 
-  deleteArchivoAdjunto: async (cursoId, archivoId) => {
-    const curso = get().cursos.find(c => c.id === cursoId);
-    if (!curso) return;
-    const newArchivos = curso.archivosAdjuntos.filter(a => a.id !== archivoId);
+  deleteArchivoAdjunto: async (cursoId, archivoId, url) => {
+    const oldCurso = get().cursos.find(c => c.id === cursoId);
+    if (!oldCurso) return;
     
+    const newArchivos = oldCurso.archivosAdjuntos.filter(a => a.id !== archivoId);
     set(state => ({ cursos: state.cursos.map(c => c.id === cursoId ? { ...c, archivosAdjuntos: newArchivos } : c) }));
+    
     try {
-      const { error } = await supabase.from('cursos').update({ archivosAdjuntos: newArchivos }).eq('id', cursoId);
-      if (error) throw error;
-    } catch (error) {
-      set(state => ({ cursos: state.cursos.map(c => c.id === cursoId ? curso : c) }));
-      toast.error('Error al eliminar el archivo adjunto'); throw error;
+      // 1. Eliminar de la base de datos
+      const { error: dbError } = await supabase.from('archivos_adjuntos').delete().eq('id', archivoId);
+      if (dbError) throw dbError;
+
+      // 2. Eliminar de Storage (intentar extraer el path desde la URL)
+      // La URL pública termina en /storage/v1/object/public/archivos_cursos/PATH_DEL_ARCHIVO
+      const urlParts = url.split('/archivos_cursos/');
+      if (urlParts.length > 1) {
+        const filePath = urlParts[1];
+        // No bloqueamos si falla la eliminación en storage, lo importante es quitarlo de la BD
+        supabase.storage.from('archivos_cursos').remove([filePath]).catch(console.error);
+      }
+      
+      toast.success('Archivo eliminado');
+    } catch (error: any) {
+      set(state => ({ cursos: state.cursos.map(c => c.id === cursoId ? oldCurso : c) }));
+      toast.error(`Error al eliminar el archivo: ${error.message || 'Desconocido'}`);
+      throw error;
     }
   },
 
