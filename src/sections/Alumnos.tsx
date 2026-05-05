@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Search, GraduationCap, FileText, Upload, Plus, Download, Edit } from 'lucide-react';
+import { Search, GraduationCap, Download } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { Store } from '@/hooks/useStore';
+import type { Store, StoreState } from '@/hooks/useStore';
+
+type AlumnoExtendido = ReturnType<StoreState['getTodosLosAlumnos']>[number];
 
 interface AlumnosProps {
   store: Store;
@@ -14,7 +16,7 @@ export default function Alumnos({ store }: AlumnosProps) {
   const { getTodosLosAlumnos } = store;
   const [busqueda, setBusqueda] = useState('');
   
-  const alumnos = getTodosLosAlumnos();
+  const alumnos: AlumnoExtendido[] = getTodosLosAlumnos();
 
   const alumnosFiltrados = alumnos.filter(a => 
     a.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||

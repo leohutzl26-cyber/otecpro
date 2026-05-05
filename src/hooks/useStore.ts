@@ -77,7 +77,7 @@ export interface StoreState {
   getFlujoCaja: (dias?: number) => { fecha: string; ingresosProyectados: number; ingresosReales: number; egresosProyectados: number; egresosReales: number; saldoProyectado: number; saldoReal: number }[];
   
   // Alumnos
-  getTodosLosAlumnos: () => Participante[];
+  getTodosLosAlumnos: () => (Participante & { cursoNombre?: string; ejecucionCodigo?: string; ejecucionId?: string })[];
   addParticipantesMasivo: (ejecucionId: string, participantes: Partial<Participante>[]) => Promise<void>;
 }
 
@@ -97,7 +97,7 @@ export const useStore = create<StoreState>((set, get) => ({
     try {
       const [
         { data: cData }, { data: curData }, { data: rData }, 
-        { data: eData }, { data: cotData }, { data: tData }, { data: aData }, { data: catData }
+        { data: eData }, { data: cotData }, { data: tData }, { data: aData }, { data: catData }, { data: pData }
       ] = await Promise.all([
         supabase.from('clientes').select('*, contactos(*)'),
         supabase.from('cursos').select('*'),
