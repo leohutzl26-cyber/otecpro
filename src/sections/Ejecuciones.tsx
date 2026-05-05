@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { 
   Search, Calendar, Users, X,
   Edit, MoreHorizontal, FileText, CheckCircle, AlertTriangle,
-  Clock, Upload, Download, GraduationCap, DollarSign, Paperclip, Plus, Sparkles, Loader2, Save
+  Clock, Upload, Download, GraduationCap, DollarSign, Paperclip, Plus, Sparkles, Loader2, Save, MapPin
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
