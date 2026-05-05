@@ -356,7 +356,7 @@ export default function Cursos({ store }: CursosProps) {
       </div>
 
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="max-w-5xl h-[85vh] flex flex-col p-0 overflow-hidden">
+        <DialogContent className="max-w-[95vw] w-full h-[92vh] flex flex-col p-0 overflow-hidden">
           <div className="p-6 border-b">
             <DialogHeader>
               <DialogTitle className="text-2xl">{cursoSeleccionado?.nombre}</DialogTitle>
