@@ -130,7 +130,25 @@ export const useStore = create<StoreState>((set, get) => ({
         cursos: curData && curData.length > 0 ? curData as Curso[] : state.cursos,
         relatores: rData && rData.length > 0 ? rData as Relator[] : state.relatores,
         ejecuciones: eData && eData.length > 0 ? eData as Ejecucion[] : state.ejecuciones,
-        cotizaciones: cotData && cotData.length > 0 ? cotData as Cotizacion[] : state.cotizaciones,
+        cotizaciones: cotData && cotData.length > 0 ? cotData.map((cot: any) => ({
+          id: cot.id,
+          codigoUnico: cot.numero,
+          numero: cot.numero,
+          estado: cot.estado,
+          fechaPropuesta: cot.fecha,
+          nombre: cot.nombre_servicio || 'Cotización Legado',
+          clienteId: cot.cliente_id,
+          validezPropuesta: cot.validez_propuesta || `${cot.vigencia_dias} días`,
+          perteneceCatalogo: cot.pertenece_catalogo || false,
+          cursoId: cot.curso_id,
+          descripcion: cot.observaciones || '',
+          fechaTentativa: cot.fecha_tentativa || '',
+          precio: cot.total,
+          archivosAdjuntos: cot.archivos_adjuntos || [],
+          subtotal: cot.subtotal,
+          iva: cot.iva,
+          total: cot.total
+        })) : state.cotizaciones,
         transacciones: tData && tData.length > 0 ? tData as Transaccion[] : state.transacciones,
         alertas: aData && aData.length > 0 ? aData as Alerta[] : state.alertas,
         categoriasArchivos: catData && catData.length > 0 ? catData.map((cat: any) => ({
@@ -375,29 +393,73 @@ export const useStore = create<StoreState>((set, get) => ({
   addCotizacion: async (cotizacion) => {
     const { cotizaciones } = get();
     const codigoUnico = `COT-2025-${String(cotizaciones.length + 1).padStart(3, '0')}`;
-    const newCotizacion = { ...cotizacion, id: `cot${Date.now()}`, codigoUnico, numero: codigoUnico } as Cotizacion;
-    set(state => ({ cotizaciones: [...state.cotizaciones, newCotizacion] }));
+    
+    // Preparar para la BD
+    const dbCotizacion = {
+      numero: codigoUnico,
+      cliente_id: cotizacion.clienteId,
+      estado: cotizacion.estado || 'En Preparación',
+      fecha: cotizacion.fechaPropuesta || new Date().toISOString().split('T')[0],
+      nombre_servicio: cotizacion.nombre,
+      validez_propuesta: cotizacion.validezPropuesta,
+      pertenece_catalogo: cotizacion.perteneceCatalogo || false,
+      curso_id: cotizacion.cursoId || null,
+      observaciones: cotizacion.descripcion || null,
+      fecha_tentativa: cotizacion.fechaTentativa || null,
+      total: cotizacion.precio || 0,
+      subtotal: cotizacion.precio || 0,
+      iva: 0,
+      vigencia_dias: 30, // Default for backward compatibility
+      archivos_adjuntos: cotizacion.archivosAdjuntos || []
+    };
+
     try {
-      const { error } = await supabase.from('cotizaciones').insert(newCotizacion);
+      const { data, error } = await supabase.from('cotizaciones').insert(dbCotizacion).select().single();
       if (error) throw error;
+
+      const newCotizacion = { 
+        ...cotizacion, 
+        id: data.id, 
+        codigoUnico, 
+        numero: codigoUnico 
+      } as Cotizacion;
+
+      set(state => ({ cotizaciones: [...state.cotizaciones, newCotizacion] }));
+      return newCotizacion;
     } catch (error: any) {
-      set(state => ({ cotizaciones: state.cotizaciones.filter(c => c.id !== newCotizacion.id) }));
-      toast.error(`Error al crear: ${error.message || 'Desconocido'}`);
+      toast.error(`Error al crear cotización: ${error.message || 'Desconocido'}`);
       throw error;
     }
-    return newCotizacion;
   },
 
   updateCotizacion: async (id, data) => {
     const old = get().cotizaciones.find(c => c.id === id);
     if (!old) return;
     set(state => ({ cotizaciones: state.cotizaciones.map(c => c.id === id ? { ...c, ...data } : c) }));
+    
+    const dbUpdate: any = {};
+    if (data.estado !== undefined) dbUpdate.estado = data.estado;
+    if (data.fechaPropuesta !== undefined) dbUpdate.fecha = data.fechaPropuesta;
+    if (data.nombre !== undefined) dbUpdate.nombre_servicio = data.nombre;
+    if (data.validezPropuesta !== undefined) dbUpdate.validez_propuesta = data.validezPropuesta;
+    if (data.perteneceCatalogo !== undefined) dbUpdate.pertenece_catalogo = data.perteneceCatalogo;
+    if (data.cursoId !== undefined) dbUpdate.curso_id = data.cursoId;
+    if (data.descripcion !== undefined) dbUpdate.observaciones = data.descripcion;
+    if (data.fechaTentativa !== undefined) dbUpdate.fecha_tentativa = data.fechaTentativa;
+    if (data.precio !== undefined) {
+      dbUpdate.total = data.precio;
+      dbUpdate.subtotal = data.precio;
+    }
+    if (data.archivosAdjuntos !== undefined) dbUpdate.archivos_adjuntos = data.archivosAdjuntos;
+
     try {
-      const { error } = await supabase.from('cotizaciones').update(data).eq('id', id);
-      if (error) throw error;
+      if (Object.keys(dbUpdate).length > 0) {
+        const { error } = await supabase.from('cotizaciones').update(dbUpdate).eq('id', id);
+        if (error) throw error;
+      }
     } catch (error: any) {
       set(state => ({ cotizaciones: state.cotizaciones.map(c => c.id === id ? old : c) }));
-      toast.error(`Error al actualizar: ${error.message || 'Desconocido'}`);
+      toast.error(`Error al actualizar cotización: ${error.message || 'Desconocido'}`);
       throw error;
     }
   },
