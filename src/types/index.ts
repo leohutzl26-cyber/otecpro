@@ -131,6 +131,7 @@ export interface Participante {
     poderSimple: DocumentoSAG;
   };
   estadoSAG: 'Completo' | 'Incompleto' | 'Pendiente' | 'No Aplica';
+  empresaId?: string;
 }
 
 // --- EJECUCIÓN DE CURSO ---

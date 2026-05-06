@@ -130,7 +130,8 @@ export const useStore = create<StoreState>((set, get) => ({
           certificadoMedico: { url: p.doc_med_url, valido: p.doc_med_valido || false },
           poderSimple: { url: p.doc_pod_url, valido: p.doc_pod_valido || false }
         },
-        ejecucionId: p.ejecucion_id // Added custom field for joining
+        ejecucionId: p.ejecucion_id,
+        empresaId: p.empresa_id || p.cliente_id
       })) : [];
 
       set(state => ({

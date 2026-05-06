@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { 
   Search, Plus, Building2, Mail, Phone, MapPin, 
   Edit, Trash2, MoreHorizontal, UserPlus, Users,
-  FileText, Calendar, Clock
+  FileText
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -718,7 +718,7 @@ export default function Clientes({ store }: ClientesProps) {
                             </div>
                           </div>
                         ))}
-                      {alumnos.filter(a => a.empresaId === clienteSeleccionado.id).length === 0 && (
+                      {alumnos.filter((a: any) => a.empresaId === clienteSeleccionado.id).length === 0 && (
                         <p className="col-span-full text-center py-12 text-slate-400">Sin alumnos vinculados.</p>
                       )}
                     </div>
