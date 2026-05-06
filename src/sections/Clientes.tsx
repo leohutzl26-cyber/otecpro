@@ -464,9 +464,8 @@ export default function Clientes({ store }: ClientesProps) {
           </Button>
         </div>
       )}
-    </div>
 
-    {/* Diálogo de Detalle Expandido - ERP OTEC PRO */}
+    {/* Dialogo de Detalle Expandido - ERP OTEC PRO */}
     <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
       <DialogContent className="max-w-none sm:max-w-[95vw] w-[95vw] h-[92vh] flex flex-col p-0 overflow-hidden">
         <div className="p-6 border-b">
