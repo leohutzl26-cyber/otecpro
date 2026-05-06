@@ -57,6 +57,7 @@ export interface Cliente {
   contactos: Contacto[];
   fechaRegistro: string;
   observaciones?: string;
+  documentos: ArchivoBase[];
 }
 
 export interface ArchivoAdjunto {
@@ -95,6 +96,7 @@ export interface Relator {
   email: string;
   telefono: string;
   activo: boolean;
+  documentos: ArchivoBase[];
 }
 
 // --- ESTRUCTURAS ANIDADAS ---
@@ -136,6 +138,7 @@ export interface Participante {
 export interface Ejecucion {
   id: string;
   codigoUnico: string;
+  codigoPropio?: string;
   cursoId?: string;
   curso?: Curso;
   clienteId?: string;
@@ -151,6 +154,7 @@ export interface Ejecucion {
     sesiones: Sesion[];
     lugar?: string;
     urlPlataforma?: string;
+    valorHoraRelator?: number;
   };
   relatorId?: string;
   relator?: Relator;
@@ -213,6 +217,7 @@ export interface Monto {
   neto: number;
   iva: number;
   total: number;
+  metodoPago?: string;
 }
 
 export interface TrackingFinanciero {

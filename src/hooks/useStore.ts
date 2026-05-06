@@ -18,6 +18,7 @@ export interface StoreState {
   cotizaciones: Cotizacion[];
   transacciones: Transaccion[];
   alertas: Alerta[];
+  alumnos: Participante[];
   categoriasArchivos: import('@/types').CategoriaArchivo[];
   addCategoriaArchivo: (nombre: string) => Promise<void>;
   deleteCategoriaArchivo: (id: string) => Promise<void>;
@@ -89,6 +90,7 @@ export const useStore = create<StoreState>((set, get) => ({
   cotizaciones: cotizacionesMock,
   transacciones: transaccionesMock,
   alertas: alertasMock,
+  alumnos: [],
   categoriasArchivos: [],
   isLoading: false,
 
@@ -151,7 +153,8 @@ export const useStore = create<StoreState>((set, get) => ({
             esCoordinador: con.es_coordinador
           })) : [],
           fechaRegistro: c.fecha_registro,
-          observaciones: c.observaciones
+          observaciones: c.observaciones,
+          documentos: []
         })) : state.clientes,
         cursos: curData && curData.length > 0 ? curData.map((c: any) => ({
           id: c.id,
@@ -185,7 +188,8 @@ export const useStore = create<StoreState>((set, get) => ({
           titulosUrl: r.titulos_url,
           email: r.email,
           telefono: r.telefono,
-          activo: r.activo !== false
+          activo: r.activo !== false,
+          documentos: []
         })) : state.relatores,
         ejecuciones: eData && eData.length > 0 ? eData.map((e: any) => ({
           id: e.id,
@@ -248,6 +252,7 @@ export const useStore = create<StoreState>((set, get) => ({
         }) : state.cotizaciones,
         transacciones: tData && tData.length > 0 ? tData as Transaccion[] : state.transacciones,
         alertas: aData && aData.length > 0 ? aData as Alerta[] : state.alertas,
+        alumnos: mappedParticipantes as Participante[],
         categoriasArchivos: catData && catData.length > 0 ? catData.map((cat: any) => ({
           id: cat.id,
           nombre: cat.nombre,

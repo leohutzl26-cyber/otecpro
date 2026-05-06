@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { 
   Search, Plus, GraduationCap, DollarSign, 
   Edit, Trash2, MoreHorizontal, FileText, Star, 
-  Calendar, Download, Clock
+  Calendar, Download, Clock, Mail, Phone, Building2
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -426,13 +426,12 @@ export default function Relatores({ store }: RelatoresProps) {
                       </TabsTrigger>
                     </TabsList>
                   </div>
-
                   <div className="flex-1 overflow-y-auto p-6">
                     <TabsContent value="ejecuciones" className="mt-0 space-y-4">
                       <div className="grid grid-cols-1 gap-3">
                         {ejecuciones
-                          .filter(e => e.relatorId === relatorSeleccionado.id)
-                          .map((ejecucion) => {
+                          .filter((e: any) => e.relatorId === relatorSeleccionado.id)
+                          .map((ejecucion: any) => {
                             const curso = cursos.find(c => c.id === ejecucion.cursoId);
                             const cliente = clientes.find(c => c.id === ejecucion.clienteId);
                             
@@ -464,7 +463,7 @@ export default function Relatores({ store }: RelatoresProps) {
                                       }>
                                         {ejecucion.estado}
                                       </Badge>
-                                      <p className="text-xs font-bold text-blue-600">${(ejecucion.configuracion.valorHoraRelator || 0).toLocaleString('es-CL')}/hr</p>
+                                      <p className="text-xs font-bold text-blue-600">${((ejecucion.configuracion as any).valorHoraRelator || 0).toLocaleString('es-CL')}/hr</p>
                                     </div>
                                   </div>
                                 </CardContent>
@@ -484,13 +483,13 @@ export default function Relatores({ store }: RelatoresProps) {
                     <TabsContent value="pagos" className="mt-0 space-y-4">
                       <div className="grid grid-cols-1 gap-3">
                         {transacciones
-                          .filter(t => 
+                          .filter((t: any) => 
                             t.tipo === 'Egreso' && 
                             t.categoria === 'Honorarios' && 
                             t.idEjecucion && 
                             ejecuciones.find(e => e.id === t.idEjecucion)?.relatorId === relatorSeleccionado.id
                           )
-                          .map((t) => {
+                          .map((t: any) => {
                             const ejecucion = ejecuciones.find(e => e.id === t.idEjecucion);
                             const curso = cursos.find(c => c.id === ejecucion?.cursoId);
                             
@@ -509,13 +508,13 @@ export default function Relatores({ store }: RelatoresProps) {
                                 </div>
                                 <div className="text-right">
                                   <p className="text-lg font-bold text-slate-800">${t.monto.total.toLocaleString('es-CL')}</p>
-                                  <p className="text-xs text-slate-500">{t.monto.metodoPago || 'Por definir'}</p>
+                                  <p className="text-xs text-slate-500">{(t.monto as any).metodoPago || 'Por definir'}</p>
                                 </div>
                               </div>
                             );
                           })}
                         
-                        {transacciones.filter(t => 
+                        {transacciones.filter((t: any) => 
                           t.tipo === 'Egreso' && 
                           t.categoria === 'Honorarios' && 
                           t.idEjecucion && 

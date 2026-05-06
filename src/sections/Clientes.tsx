@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { 
   Search, Plus, Building2, Mail, Phone, MapPin, 
-  Edit, Trash2, MoreHorizontal, UserPlus, Users
+  Edit, Trash2, MoreHorizontal, UserPlus, Users,
+  FileText, Calendar, Clock
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, 
   DialogFooter, DialogTrigger, DialogClose
 } from '@/components/ui/dialog';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { 
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, 
   DropdownMenuTrigger 
@@ -515,24 +517,23 @@ export default function Clientes({ store }: ClientesProps) {
                   </div>
                 </div>
 
-                {/* Estadísticas Consolidadas */}
                 <div className="grid grid-cols-3 gap-3">
                   <div className="p-3 bg-white border rounded-lg shadow-sm text-center">
                     <p className="text-[10px] text-slate-500 uppercase font-bold">Cots.</p>
                     <p className="font-bold text-lg text-blue-600">
-                      {cotizaciones.filter(c => c.clienteId === clienteSeleccionado.id).length}
+                      {cotizaciones.filter((c: any) => c.clienteId === clienteSeleccionado.id).length}
                     </p>
                   </div>
                   <div className="p-3 bg-white border rounded-lg shadow-sm text-center">
                     <p className="text-[10px] text-slate-500 uppercase font-bold">Ejecs.</p>
                     <p className="font-bold text-lg text-green-600">
-                      {ejecuciones.filter(e => e.clienteId === clienteSeleccionado.id).length}
+                      {ejecuciones.filter((e: any) => e.clienteId === clienteSeleccionado.id).length}
                     </p>
                   </div>
                   <div className="p-3 bg-white border rounded-lg shadow-sm text-center">
                     <p className="text-[10px] text-slate-500 uppercase font-bold">Alumnos</p>
                     <p className="font-bold text-lg text-purple-600">
-                      {alumnos.filter(a => a.empresaId === clienteSeleccionado.id).length}
+                      {alumnos.filter((a: any) => a.empresaId === clienteSeleccionado.id).length}
                     </p>
                   </div>
                 </div>
@@ -649,8 +650,8 @@ export default function Clientes({ store }: ClientesProps) {
                   <TabsContent value="cotizaciones" className="mt-0 space-y-4">
                     <div className="grid grid-cols-1 gap-3">
                       {cotizaciones
-                        .filter(c => c.clienteId === clienteSeleccionado.id)
-                        .map((cot) => (
+                        .filter((c: any) => c.clienteId === clienteSeleccionado.id)
+                        .map((cot: any) => (
                           <div key={cot.id} className="p-4 bg-white border rounded-lg flex items-center justify-between shadow-sm">
                             <div className="space-y-1">
                               <p className="font-bold text-slate-800">{cot.nombre}</p>
@@ -677,8 +678,8 @@ export default function Clientes({ store }: ClientesProps) {
                   <TabsContent value="ejecuciones" className="mt-0 space-y-4">
                     <div className="grid grid-cols-1 gap-3">
                       {ejecuciones
-                        .filter(e => e.clienteId === clienteSeleccionado.id)
-                        .map((ejec) => (
+                        .filter((e: any) => e.clienteId === clienteSeleccionado.id)
+                        .map((ejec: any) => (
                           <div key={ejec.id} className="p-4 bg-white border rounded-lg flex items-center justify-between shadow-sm">
                             <div className="space-y-1">
                               <p className="font-bold text-slate-800">ID: {ejec.codigoPropio || ejec.id.substring(0,8)}</p>
@@ -705,8 +706,8 @@ export default function Clientes({ store }: ClientesProps) {
                   <TabsContent value="alumnos" className="mt-0 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {alumnos
-                        .filter(a => a.empresaId === clienteSeleccionado.id)
-                        .map((alum) => (
+                        .filter((a: any) => a.empresaId === clienteSeleccionado.id)
+                        .map((alum: any) => (
                           <div key={alum.id} className="p-3 bg-white border rounded-lg flex items-center gap-3 shadow-sm">
                             <div className="w-10 h-10 bg-purple-50 rounded-full flex items-center justify-center text-purple-600 font-bold">
                               {alum.nombre.charAt(0)}
