@@ -35,6 +35,7 @@ export default function Relatores({ store }: RelatoresProps) {
   const [relatorSeleccionado, setRelatorSeleccionado] = useState<Relator | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [archivoPreview, setArchivoPreview] = useState<any | null>(null);
 
   // Formulario
   const [formData, setFormData] = useState<Partial<Relator>>({
@@ -45,7 +46,8 @@ export default function Relatores({ store }: RelatoresProps) {
     valorHora: 0,
     email: '',
     telefono: '',
-    activo: true
+    activo: true,
+    documentos: [] // Asegurarnos de que exista este campo
   });
 
   const relatoresFiltrados = relatores.filter(r => 
@@ -73,7 +75,8 @@ export default function Relatores({ store }: RelatoresProps) {
       valorHora: 0,
       email: '',
       telefono: '',
-      activo: true
+      activo: true,
+      documentos: []
     });
     setRelatorSeleccionado(null);
   };
@@ -87,6 +90,14 @@ export default function Relatores({ store }: RelatoresProps) {
   const verDetalle = (relator: Relator) => {
     setRelatorSeleccionado(relator);
     setIsDetailOpen(true);
+    
+    // Seleccionar primer archivo PDF o Imagen para vista previa por defecto si existen documentos
+    const docs = (relator as any).documentos || [];
+    const firstPreview = docs.find((a: any) => 
+      a.url.toLowerCase().endsWith('.pdf') || 
+      /\.(jpg|jpeg|png|gif|webp)$/i.test(a.url)
+    );
+    setArchivoPreview(firstPreview || null);
   };
 
   // Calcular estadísticas del relator
@@ -294,172 +305,280 @@ export default function Relatores({ store }: RelatoresProps) {
         })}
       </div>
 
-      {/* Diálogo de Detalle */}
+      {/* Diálogo de Detalle Expandido */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-none sm:max-w-[95vw] w-[95vw] h-[92vh] flex flex-col p-0 overflow-hidden">
+          <div className="p-6 border-b">
+            <DialogHeader>
+              <DialogTitle className="text-2xl flex items-center gap-4">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
+                  <GraduationCap className="w-6 h-6 text-blue-600" />
+                </div>
+                <div>
+                  <span>Ficha de Relator: {relatorSeleccionado?.nombre}</span>
+                  <p className="text-sm text-slate-500 font-normal">{relatorSeleccionado?.profesion}</p>
+                </div>
+              </DialogTitle>
+            </DialogHeader>
+          </div>
+          
           {relatorSeleccionado && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                    <GraduationCap className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <p>{relatorSeleccionado.nombre}</p>
-                    <p className="text-sm text-slate-500 font-normal">{relatorSeleccionado.profesion}</p>
-                  </div>
-                </DialogTitle>
-              </DialogHeader>
-
-              <Tabs defaultValue="info">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="info">Información</TabsTrigger>
-                  <TabsTrigger value="cursos">Cursos Dictados</TabsTrigger>
-                  <TabsTrigger value="pagos">Pagos</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="info" className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-slate-50 rounded-lg">
-                      <h4 className="font-medium text-slate-700 mb-3">Datos Personales</h4>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-slate-500">RUT:</span>
-                          <span>{relatorSeleccionado.rut}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-500">Email:</span>
-                          <span>{relatorSeleccionado.email}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-500">Teléfono:</span>
-                          <span>{relatorSeleccionado.telefono}</span>
-                        </div>
-                      </div>
+            <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+              {/* Panel Izquierdo: Resumen y Datos */}
+              <div className="w-full md:w-1/3 p-6 overflow-y-auto border-r bg-slate-50/50 space-y-6">
+                <div className="space-y-4">
+                  <div className="p-5 bg-white border rounded-xl shadow-sm space-y-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Estado</p>
+                      <Badge className={relatorSeleccionado.activo ? 'bg-green-500' : 'bg-slate-500'}>
+                        {relatorSeleccionado.activo ? 'Activo' : 'Inactivo'}
+                      </Badge>
                     </div>
-
-                    <div className="p-4 bg-slate-50 rounded-lg">
-                      <h4 className="font-medium text-slate-700 mb-3">Información Profesional</h4>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-slate-500">Especialidad:</span>
-                          <span>{relatorSeleccionado.especialidad}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-500">Valor Hora:</span>
-                          <span className="font-medium">
-                            ${relatorSeleccionado.valorHora.toLocaleString('es-CL')}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-500">Estado:</span>
-                          <Badge className={relatorSeleccionado.activo ? 'bg-green-500' : 'bg-slate-500'}>
-                            {relatorSeleccionado.activo ? 'Activo' : 'Inactivo'}
-                          </Badge>
-                        </div>
+                    
+                    <div className="grid grid-cols-1 gap-3">
+                      <div>
+                        <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">RUT</p>
+                        <p className="font-semibold text-slate-800">{relatorSeleccionado.rut}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Especialidad</p>
+                        <p className="font-semibold text-blue-700">{relatorSeleccionado.especialidad}</p>
+                      </div>
+                      <div className="pt-2 border-t">
+                        <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Contacto</p>
+                        <p className="text-sm flex items-center gap-2 mt-1">
+                          <Mail className="w-3 h-3 text-slate-400" /> {relatorSeleccionado.email}
+                        </p>
+                        <p className="text-sm flex items-center gap-2 mt-1">
+                          <Phone className="w-3 h-3 text-slate-400" /> {relatorSeleccionado.telefono}
+                        </p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
-                    <Button variant="outline" className="flex-1">
-                      <Download className="w-4 h-4 mr-2" />
-                      Descargar CV
-                    </Button>
-                    <Button variant="outline" className="flex-1">
-                      <Download className="w-4 h-4 mr-2" />
-                      Descargar Títulos
-                    </Button>
-                  </div>
-                </TabsContent>
+                  {/* Estadísticas */}
+                  {(() => {
+                    const stats = getStatsRelator(relatorSeleccionado.id);
+                    return (
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="p-3 bg-white border rounded-lg shadow-sm text-center">
+                          <p className="text-[10px] text-slate-500 uppercase font-bold">Cursos</p>
+                          <p className="font-bold text-lg text-slate-800">{stats.cursosDictados}</p>
+                        </div>
+                        <div className="p-3 bg-white border rounded-lg shadow-sm text-center">
+                          <p className="text-[10px] text-slate-500 uppercase font-bold">Horas</p>
+                          <p className="font-bold text-lg text-slate-800">{stats.horasDictadas}</p>
+                        </div>
+                        <div className="p-3 bg-white border rounded-lg shadow-sm text-center">
+                          <p className="text-[10px] text-slate-500 uppercase font-bold">Por Pagar</p>
+                          <p className={`font-bold text-lg ${stats.totalPendiente > 0 ? 'text-amber-600' : 'text-green-600'}`}>
+                            ${(stats.totalPendiente / 1000).toFixed(0)}k
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
 
-                <TabsContent value="cursos">
-                  <div className="space-y-3">
-                    {ejecuciones
-                      .filter(e => e.relatorId === relatorSeleccionado.id)
-                      .map((ejecucion) => {
-                        const curso = cursos.find(c => c.id === ejecucion.cursoId);
-                        const cliente = clientes.find(c => c.id === ejecucion.clienteId);
+                <div className="pt-4 border-t space-y-3">
+                  <h4 className="text-xs text-slate-500 uppercase font-bold tracking-wider">Documentos y Certificaciones</h4>
+                  {(!(relatorSeleccionado as any).documentos || (relatorSeleccionado as any).documentos.length === 0) ? (
+                    <div className="text-center py-6 bg-slate-100 rounded-lg border-2 border-dashed border-slate-200">
+                      <FileText className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                      <p className="text-xs text-slate-500">Sin documentos adjuntos</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-2">
+                      {(relatorSeleccionado as any).documentos.map((a: any) => (
+                        <button 
+                          key={a.id} 
+                          onClick={() => setArchivoPreview(a)}
+                          className={`flex items-center gap-3 p-3 bg-white border rounded-lg text-left transition-all hover:border-blue-600 ${archivoPreview?.id === a.id ? 'border-blue-600 ring-1 ring-blue-600/20' : 'border-slate-200'}`}
+                        >
+                          <div className="w-8 h-8 rounded bg-slate-50 flex items-center justify-center shrink-0">
+                            {a.url.toLowerCase().endsWith('.pdf') ? <FileText className="w-4 h-4 text-red-500" /> : <FileText className="w-4 h-4 text-slate-400" />}
+                          </div>
+                          <span className="text-xs font-medium text-slate-700 truncate">{a.nombre}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <Button variant="outline" className="w-full text-xs" size="sm">
+                    <Plus className="w-3 h-3 mr-2" />
+                    Subir Documento
+                  </Button>
+                </div>
+              </div>
+
+              {/* Panel Derecho: Contenido Detallado y Preview */}
+              <div className="flex-1 flex flex-col bg-slate-100/30">
+                <Tabs defaultValue="ejecuciones" className="flex-1 flex flex-col overflow-hidden">
+                  <div className="bg-white border-b px-6">
+                    <TabsList className="bg-transparent border-b-0 h-14 gap-6">
+                      <TabsTrigger value="ejecuciones" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:shadow-none rounded-none px-0 h-14">
+                        Ejecuciones Asociadas
+                      </TabsTrigger>
+                      <TabsTrigger value="pagos" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:shadow-none rounded-none px-0 h-14">
+                        Historial de Pagos
+                      </TabsTrigger>
+                      <TabsTrigger value="preview" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:shadow-none rounded-none px-0 h-14">
+                        Vista Previa Documento
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto p-6">
+                    <TabsContent value="ejecuciones" className="mt-0 space-y-4">
+                      <div className="grid grid-cols-1 gap-3">
+                        {ejecuciones
+                          .filter(e => e.relatorId === relatorSeleccionado.id)
+                          .map((ejecucion) => {
+                            const curso = cursos.find(c => c.id === ejecucion.cursoId);
+                            const cliente = clientes.find(c => c.id === ejecucion.clienteId);
+                            
+                            return (
+                              <Card key={ejecucion.id} className="shadow-sm">
+                                <CardContent className="p-4">
+                                  <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                      <h4 className="font-bold text-slate-800">{curso?.nombre}</h4>
+                                      <p className="text-sm text-slate-500 flex items-center gap-2">
+                                        <Building2 className="w-3 h-3" /> {cliente?.razonSocial}
+                                      </p>
+                                      <div className="flex items-center gap-4 mt-2 text-xs text-slate-600">
+                                        <span className="flex items-center gap-1">
+                                          <Calendar className="w-3 h-3" />
+                                          {ejecucion.fechaInicio} al {ejecucion.fechaTermino}
+                                        </span>
+                                        <span className="flex items-center gap-1">
+                                          <Clock className="w-3 h-3" />
+                                          {ejecucion.configuracion.totalHoras} hrs
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <div className="text-right space-y-2">
+                                      <Badge className={
+                                        ejecucion.estado === 'Terminado' ? 'bg-green-500' :
+                                        ejecucion.estado === 'En Curso' ? 'bg-blue-500' :
+                                        'bg-slate-500'
+                                      }>
+                                        {ejecucion.estado}
+                                      </Badge>
+                                      <p className="text-xs font-bold text-blue-600">${(ejecucion.configuracion.valorHoraRelator || 0).toLocaleString('es-CL')}/hr</p>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
                         
-                        return (
-                          <div key={ejecucion.id} className="p-4 border rounded-lg">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <h4 className="font-medium">{curso?.nombre}</h4>
-                                <p className="text-sm text-slate-500">{cliente?.razonSocial}</p>
-                                <div className="flex items-center gap-3 mt-1 text-sm text-slate-600">
-                                  <span className="flex items-center gap-1">
-                                    <Calendar className="w-4 h-4" />
-                                    {ejecucion.fechaInicio}
-                                  </span>
-                                  <span className="flex items-center gap-1">
-                                    <Clock className="w-4 h-4" />
-                                    {ejecucion.configuracion.totalHoras} hrs
-                                  </span>
+                        {ejecuciones.filter(e => e.relatorId === relatorSeleccionado.id).length === 0 && (
+                          <div className="text-center py-12 text-slate-500">
+                            <Clock className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                            <p>No se registran ejecuciones asociadas a este relator.</p>
+                          </div>
+                        )}
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="pagos" className="mt-0 space-y-4">
+                      <div className="grid grid-cols-1 gap-3">
+                        {transacciones
+                          .filter(t => 
+                            t.tipo === 'Egreso' && 
+                            t.categoria === 'Honorarios' && 
+                            t.idEjecucion && 
+                            ejecuciones.find(e => e.id === t.idEjecucion)?.relatorId === relatorSeleccionado.id
+                          )
+                          .map((t) => {
+                            const ejecucion = ejecuciones.find(e => e.id === t.idEjecucion);
+                            const curso = cursos.find(c => c.id === ejecucion?.cursoId);
+                            
+                            return (
+                              <div key={t.id} className="p-4 bg-white border rounded-lg flex items-center justify-between shadow-sm">
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold text-slate-800">{t.metadatos.nroDocumento || 'Boleta s/n'}</span>
+                                    {t.tracking.pagado ? 
+                                      <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">Pagado</Badge> : 
+                                      <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">Pendiente</Badge>
+                                    }
+                                  </div>
+                                  <p className="text-sm text-slate-600">{curso?.nombre}</p>
+                                  <p className="text-xs text-slate-400">Emisión: {t.tracking.fechaEmision}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-lg font-bold text-slate-800">${t.monto.total.toLocaleString('es-CL')}</p>
+                                  <p className="text-xs text-slate-500">{t.monto.metodoPago || 'Por definir'}</p>
                                 </div>
                               </div>
-                              <Badge className={
-                                ejecucion.estado === 'Terminado' ? 'bg-green-500' :
-                                ejecucion.estado === 'En Curso' ? 'bg-blue-500' :
-                                'bg-slate-500'
-                              }>
-                                {ejecucion.estado}
-                              </Badge>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    
-                    {ejecuciones.filter(e => e.relatorId === relatorSeleccionado.id).length === 0 && (
-                      <p className="text-center text-slate-500 py-8">No hay cursos registrados</p>
-                    )}
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="pagos">
-                  <div className="space-y-3">
-                    {transacciones
-                      .filter(t => 
-                        t.tipo === 'Egreso' && 
-                        t.categoria === 'Honorarios' && 
-                        t.idEjecucion && 
-                        ejecuciones.find(e => e.id === t.idEjecucion)?.relatorId === relatorSeleccionado.id
-                      )
-                      .map((t) => {
-                        const ejecucion = ejecuciones.find(e => e.id === t.idEjecucion);
-                        const curso = cursos.find(c => c.id === ejecucion?.cursoId);
+                            );
+                          })}
                         
-                        return (
-                          <div key={t.id} className="p-4 border rounded-lg">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <h4 className="font-medium">{t.metadatos.nroDocumento}</h4>
-                                <p className="text-sm text-slate-500">{curso?.nombre}</p>
-                                <p className="text-sm text-slate-400">{t.tracking.fechaEmision}</p>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-bold">${t.monto.total.toLocaleString('es-CL')}</p>
-                                <Badge className={t.tracking.pagado ? 'bg-green-500' : 'bg-amber-500'}>
-                                  {t.tracking.pagado ? 'Pagado' : 'Pendiente'}
-                                </Badge>
-                              </div>
-                            </div>
+                        {transacciones.filter(t => 
+                          t.tipo === 'Egreso' && 
+                          t.categoria === 'Honorarios' && 
+                          t.idEjecucion && 
+                          ejecuciones.find(e => e.id === t.idEjecucion)?.relatorId === relatorSeleccionado.id
+                        ).length === 0 && (
+                          <div className="text-center py-12 text-slate-500">
+                            <DollarSign className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                            <p>No se registran transacciones de honorarios para este relator.</p>
                           </div>
-                        );
-                      })}
-                    
-                    {transacciones.filter(t => 
-                      t.tipo === 'Egreso' && 
-                      t.categoria === 'Honorarios' && 
-                      t.idEjecucion && 
-                      ejecuciones.find(e => e.id === t.idEjecucion)?.relatorId === relatorSeleccionado.id
-                    ).length === 0 && (
-                      <p className="text-center text-slate-500 py-8">No hay pagos registrados</p>
-                    )}
+                        )}
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="preview" className="mt-0 h-full">
+                      {archivoPreview ? (
+                        <div className="h-full flex flex-col bg-white rounded-xl border overflow-hidden shadow-lg">
+                          <div className="p-3 border-b flex items-center justify-between bg-slate-50">
+                            <div className="flex items-center gap-3">
+                              <FileText className="w-5 h-5 text-blue-600" />
+                              <span className="text-sm font-bold truncate">{archivoPreview.nombre}</span>
+                            </div>
+                            <Button variant="outline" size="sm" asChild>
+                              <a href={archivoPreview.url} target="_blank" rel="noopener noreferrer">
+                                <Download className="w-3 h-3 mr-2" /> Descargar
+                              </a>
+                            </Button>
+                          </div>
+                          <div className="flex-1 bg-slate-200/30 flex items-center justify-center">
+                            {archivoPreview.url.toLowerCase().endsWith('.pdf') ? (
+                              <iframe 
+                                src={`${archivoPreview.url}#toolbar=0`} 
+                                className="w-full h-full border-0"
+                                title="Preview PDF"
+                              />
+                            ) : /\.(jpg|jpeg|png|gif|webp)$/i.test(archivoPreview.url) ? (
+                              <img 
+                                src={archivoPreview.url} 
+                                alt={archivoPreview.nombre}
+                                className="max-w-full max-h-full object-contain p-4"
+                              />
+                            ) : (
+                              <div className="text-center space-y-4">
+                                <FileText className="w-16 h-16 text-slate-300 mx-auto" />
+                                <p className="text-slate-500">Vista previa no disponible para este formato.</p>
+                                <Button asChild>
+                                  <a href={archivoPreview.url} target="_blank" rel="noopener noreferrer">Descargar</a>
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="h-full flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
+                          <FileText className="w-16 h-16 mb-4 opacity-20" />
+                          <h3 className="font-bold">Sin documento seleccionado</h3>
+                          <p className="text-sm max-w-xs text-center">Selecciona un archivo del panel izquierdo para previsualizarlo aquí.</p>
+                        </div>
+                      )}
+                    </TabsContent>
                   </div>
-                </TabsContent>
-              </Tabs>
-            </>
+                </Tabs>
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>
