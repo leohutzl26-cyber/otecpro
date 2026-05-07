@@ -533,7 +533,10 @@ export default function Clientes({ store }: ClientesProps) {
                   <div className="p-3 bg-white border rounded-lg shadow-sm text-center">
                     <p className="text-[10px] text-slate-500 uppercase font-bold">Alumnos</p>
                     <p className="font-bold text-lg text-purple-600">
-                      {alumnos.filter((a: any) => a.empresaId === clienteSeleccionado.id).length}
+                      {alumnos.filter((a: any) => 
+                        a.empresaId === clienteSeleccionado.id || 
+                        ejecuciones.filter(e => e.clienteId === clienteSeleccionado.id).some(e => e.id === a.ejecucionId)
+                      ).length}
                     </p>
                   </div>
                 </div>
@@ -706,19 +709,25 @@ export default function Clientes({ store }: ClientesProps) {
                   <TabsContent value="alumnos" className="mt-0 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {alumnos
-                        .filter((a: any) => a.empresaId === clienteSeleccionado.id)
+                        .filter((a: any) => 
+                          a.empresaId === clienteSeleccionado.id || 
+                          ejecuciones.filter(e => e.clienteId === clienteSeleccionado.id).some(e => e.id === a.ejecucionId)
+                        )
                         .map((alum: any) => (
                           <div key={alum.id} className="p-3 bg-white border rounded-lg flex items-center gap-3 shadow-sm">
                             <div className="w-10 h-10 bg-purple-50 rounded-full flex items-center justify-center text-purple-600 font-bold">
                               {alum.nombre.charAt(0)}
                             </div>
                             <div>
-                              <p className="font-bold text-sm text-slate-800">{alum.nombre}</p>
+                              <p className="font-bold text-sm text-slate-800">{alum.nombre} {alum.apellidoPaterno}</p>
                               <p className="text-xs text-slate-500">RUT: {alum.rut}</p>
                             </div>
                           </div>
                         ))}
-                      {alumnos.filter((a: any) => a.empresaId === clienteSeleccionado.id).length === 0 && (
+                      {alumnos.filter((a: any) => 
+                        a.empresaId === clienteSeleccionado.id || 
+                        ejecuciones.filter(e => e.clienteId === clienteSeleccionado.id).some(e => e.id === a.ejecucionId)
+                      ).length === 0 && (
                         <p className="col-span-full text-center py-12 text-slate-400">Sin alumnos vinculados.</p>
                       )}
                     </div>

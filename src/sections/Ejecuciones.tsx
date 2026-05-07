@@ -817,16 +817,18 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
 
       {/* Dialogo Importar IA */}
       <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
-        <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-purple-600" />
-              Importar Nómina con IA
-            </DialogTitle>
-          </DialogHeader>
+        <DialogContent className="sm:max-w-[90vw] w-[90vw] h-[92vh] flex flex-col p-0 overflow-hidden">
+          <div className="p-6 border-b bg-white">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-xl">
+                <Sparkles className="w-6 h-6 text-purple-600" />
+                Importar Nómina con IA
+              </DialogTitle>
+            </DialogHeader>
+          </div>
           
-          <div className="space-y-4 py-4">
-            <div className="bg-purple-50 text-purple-800 p-4 rounded-lg text-sm">
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/50">
+            <div className="bg-purple-50 text-purple-800 p-4 rounded-lg text-sm border border-purple-100 shadow-sm">
               Sube la <b>Orden de Compra</b> o el documento PDF/Imagen que contenga la lista de alumnos. 
               La inteligencia artificial de Gemini extraerá automáticamente los RUT, nombres y correos.
             </div>
