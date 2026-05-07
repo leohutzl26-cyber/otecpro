@@ -817,17 +817,19 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
 
       {/* Dialogo Importar IA */}
       <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
-        <DialogContent className="sm:max-w-[90vw] w-[90vw] h-[92vh] flex flex-col p-0 overflow-hidden">
+        <DialogContent className="max-w-none w-[98vw] sm:w-[95vw] h-[95vh] flex flex-col p-0 overflow-hidden shadow-2xl">
           <div className="p-6 border-b bg-white">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-xl">
-                <Sparkles className="w-6 h-6 text-purple-600" />
-                Importar Nómina con IA
+              <DialogTitle className="flex items-center gap-3 text-2xl font-black text-slate-800">
+                <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+                  <Sparkles className="w-6 h-6 text-purple-600" />
+                </div>
+                Importar Nómina de Alumnos con IA
               </DialogTitle>
             </DialogHeader>
           </div>
           
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/50">
+          <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-slate-50/30">
             <div className="bg-purple-50 text-purple-800 p-4 rounded-lg text-sm border border-purple-100 shadow-sm">
               Sube la <b>Orden de Compra</b> o el documento PDF/Imagen que contenga la lista de alumnos. 
               La inteligencia artificial de Gemini extraerá automáticamente los RUT, nombres y correos.
@@ -854,11 +856,14 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
 
             {extractedStudents.length > 0 && (
               <div className="mt-6 border rounded-lg overflow-hidden">
-                <div className="bg-slate-50 px-4 py-2 border-b flex justify-between items-center">
-                  <h4 className="font-medium text-sm">Vista Previa ({extractedStudents.length} alumnos)</h4>
-                  <p className="text-xs text-slate-500">Puedes editar estos datos antes de guardar</p>
+                <div className="bg-slate-50 px-6 py-3 border-b flex justify-between items-center">
+                  <h4 className="font-bold text-slate-700 flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    Vista Previa de Extracción ({extractedStudents.length} alumnos detectados)
+                  </h4>
+                  <p className="text-xs text-slate-500 font-medium">Revisa y corrige los datos antes de confirmar</p>
                 </div>
-                <div className="max-h-64 overflow-y-auto">
+                <div className="max-h-[50vh] overflow-y-auto">
                   <table className="w-full text-sm">
                     <thead className="bg-slate-100 text-slate-600 sticky top-0">
                       <tr>
