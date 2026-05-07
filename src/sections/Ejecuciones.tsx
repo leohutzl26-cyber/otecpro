@@ -817,7 +817,7 @@ export default function Ejecuciones({ store }: EjecucionesProps) {
 
       {/* Dialogo Importar IA */}
       <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
-        <DialogContent className="max-w-none w-[98vw] sm:w-[95vw] h-[95vh] flex flex-col p-0 overflow-hidden shadow-2xl">
+        <DialogContent className="max-w-[98vw] sm:max-w-[95vw] w-full h-[95vh] flex flex-col p-0 overflow-hidden shadow-2xl border-slate-200">
           <div className="p-6 border-b bg-white">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-3 text-2xl font-black text-slate-800">
