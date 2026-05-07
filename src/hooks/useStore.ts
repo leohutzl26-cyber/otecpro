@@ -785,8 +785,12 @@ export const useStore = create<StoreState>((set, get) => ({
   },
 
   addParticipante: async (ejecucionId, participante) => {
+    const ejecucion = get().ejecuciones.find(e => e.id === ejecucionId);
+    const clienteId = ejecucion?.clienteId || null;
+
     const dbParticipante = {
       ejecucion_id: ejecucionId,
+      cliente_id: clienteId,
       rut: participante.rut,
       nombre: participante.nombre,
       apellido: participante.apellidoPaterno,
@@ -799,8 +803,15 @@ export const useStore = create<StoreState>((set, get) => ({
       const { data, error } = await supabase.from('participantes').insert(dbParticipante).select().single();
       if (error) throw error;
       
-      const newPart = { ...participante, id: data.id } as Participante;
+      const newPart = { 
+        ...participante, 
+        id: data.id, 
+        ejecucionId: data.ejecucion_id,
+        empresaId: data.cliente_id 
+      } as Participante;
+
       set(state => ({
+        alumnos: [...state.alumnos, newPart],
         ejecuciones: state.ejecuciones.map(e => e.id === ejecucionId ? { ...e, participantes: [...(e.participantes || []), newPart] } : e)
       }));
     } catch (error) {
@@ -809,8 +820,12 @@ export const useStore = create<StoreState>((set, get) => ({
   },
 
   addParticipantesMasivo: async (ejecucionId, participantes) => {
+    const ejecucion = get().ejecuciones.find(e => e.id === ejecucionId);
+    const clienteId = ejecucion?.clienteId || null;
+
     const dbParticipantes = participantes.map(p => ({
       ejecucion_id: ejecucionId,
+      cliente_id: clienteId, // Vincular directamente al cliente
       rut: p.rut || '',
       nombre: p.nombre || '',
       apellido: p.apellidoPaterno || '',
@@ -832,10 +847,13 @@ export const useStore = create<StoreState>((set, get) => ({
         email: d.email,
         telefono: d.telefono,
         asistenciaProgreso: d.asistencia_progreso,
+        ejecucionId: d.ejecucion_id,
+        empresaId: d.cliente_id,
         documentosSAG: { colinesterasa: {}, certificadoMedico: {}, poderSimple: {} }
       })) as Participante[];
 
       set(state => ({
+        alumnos: [...state.alumnos, ...newParts],
         ejecuciones: state.ejecuciones.map(e => e.id === ejecucionId ? { ...e, participantes: [...(e.participantes || []), ...newParts] } : e)
       }));
       toast.success(`${newParts.length} alumnos importados con éxito`);
