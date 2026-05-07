@@ -846,9 +846,10 @@ export const useStore = create<StoreState>((set, get) => ({
         apellidoMaterno: d.apellido_materno || '',
         email: d.email,
         telefono: d.telefono,
-        asistenciaProgreso: d.asistencia_progreso,
+        asistenciaProgreso: d.asistencia_progreso || 0,
         ejecucionId: d.ejecucion_id,
         empresaId: d.cliente_id,
+        estadoSAG: 'No Aplica',
         documentosSAG: { colinesterasa: {}, certificadoMedico: {}, poderSimple: {} }
       })) as Participante[];
 
