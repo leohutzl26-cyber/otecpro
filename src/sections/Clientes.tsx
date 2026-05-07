@@ -39,7 +39,7 @@ const regionesChile: RegionChile[] = [
 ];
 
 export default function Clientes({ store }: ClientesProps) {
-  const { clientes, cotizaciones, ejecuciones, alumnos, addCliente, updateCliente, deleteCliente } = store;
+  const { clientes, cotizaciones, ejecuciones, alumnos, cursos, addCliente, updateCliente, deleteCliente } = store;
   const [busqueda, setBusqueda] = useState('');
   const [clienteSeleccionado, setClienteSeleccionado] = useState<Cliente | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -59,6 +59,8 @@ export default function Clientes({ store }: ClientesProps) {
     contactos: [],
     observaciones: ''
   });
+
+  const [rutAlumnoHistorial, setRutAlumnoHistorial] = useState<string | null>(null);
 
   const [paginaActual, setPaginaActual] = useState(1);
   const itemsPorPagina = 12;
@@ -533,10 +535,13 @@ export default function Clientes({ store }: ClientesProps) {
                   <div className="p-3 bg-white border rounded-lg shadow-sm text-center">
                     <p className="text-[10px] text-slate-500 uppercase font-bold">Alumnos</p>
                     <p className="font-bold text-lg text-purple-600">
-                      {alumnos.filter((a: any) => 
-                        a.empresaId === clienteSeleccionado.id || 
-                        ejecuciones.filter(e => e.clienteId === clienteSeleccionado.id).some(e => e.id === a.ejecucionId)
-                      ).length}
+                      {Array.from(new Set(alumnos
+                        .filter((a: any) => 
+                          a.empresaId === clienteSeleccionado.id || 
+                          ejecuciones.filter(e => e.clienteId === clienteSeleccionado.id).some(e => e.id === a.ejecucionId)
+                        )
+                        .map(a => a.rut)
+                      )).length}
                     </p>
                   </div>
                 </div>
@@ -708,26 +713,41 @@ export default function Clientes({ store }: ClientesProps) {
 
                   <TabsContent value="alumnos" className="mt-0 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {alumnos
+                      {Array.from(new Set(alumnos
                         .filter((a: any) => 
                           a.empresaId === clienteSeleccionado.id || 
                           ejecuciones.filter(e => e.clienteId === clienteSeleccionado.id).some(e => e.id === a.ejecucionId)
                         )
-                        .map((alum: any) => (
-                          <div key={alum.id} className="p-3 bg-white border rounded-lg flex items-center gap-3 shadow-sm">
-                            <div className="w-10 h-10 bg-purple-50 rounded-full flex items-center justify-center text-purple-600 font-bold">
+                        .map(a => a.rut)
+                      )).map(rut => {
+                        const alum = alumnos.find(a => a.rut === rut);
+                        if (!alum) return null;
+                        return (
+                          <button 
+                            key={rut} 
+                            onClick={() => setRutAlumnoHistorial(rut)}
+                            className="p-3 bg-white border rounded-lg flex items-center gap-3 shadow-sm hover:border-purple-300 hover:shadow-md transition-all text-left"
+                          >
+                            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-bold">
                               {alum.nombre.charAt(0)}
                             </div>
-                            <div>
-                              <p className="font-bold text-sm text-slate-800">{alum.nombre} {alum.apellidoPaterno}</p>
-                              <p className="text-xs text-slate-500">RUT: {alum.rut}</p>
+                            <div className="flex-1 overflow-hidden">
+                              <p className="font-bold text-sm text-slate-800 truncate">{alum.nombre} {alum.apellidoPaterno}</p>
+                              <p className="text-xs text-slate-500 font-mono">{alum.rut}</p>
                             </div>
-                          </div>
-                        ))}
-                      {alumnos.filter((a: any) => 
-                        a.empresaId === clienteSeleccionado.id || 
-                        ejecuciones.filter(e => e.clienteId === clienteSeleccionado.id).some(e => e.id === a.ejecucionId)
-                      ).length === 0 && (
+                            <Badge variant="outline" className="text-[10px]">
+                              {alumnos.filter(a => a.rut === rut && (a.empresaId === clienteSeleccionado.id || ejecuciones.find(e => e.id === a.ejecucionId)?.clienteId === clienteSeleccionado.id)).length} ejec.
+                            </Badge>
+                          </button>
+                        );
+                      })}
+                      {Array.from(new Set(alumnos
+                        .filter((a: any) => 
+                          a.empresaId === clienteSeleccionado.id || 
+                          ejecuciones.filter(e => e.clienteId === clienteSeleccionado.id).some(e => e.id === a.ejecucionId)
+                        )
+                        .map(a => a.rut)
+                      )).length === 0 && (
                         <p className="col-span-full text-center py-12 text-slate-400">Sin alumnos vinculados.</p>
                       )}
                     </div>
@@ -764,6 +784,74 @@ export default function Clientes({ store }: ClientesProps) {
             </div>
           </div>
         )}
+      </DialogContent>
+    </Dialog>
+
+    {/* Dialogo Historial Alumno */}
+    <Dialog open={!!rutAlumnoHistorial} onOpenChange={(open) => !open && setRutAlumnoHistorial(null)}>
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col p-0">
+        <DialogHeader className="p-6 border-b bg-slate-50">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-purple-600 rounded-2xl flex items-center justify-center text-white text-xl font-black shadow-lg">
+              {alumnos.find(a => a.rut === rutAlumnoHistorial)?.nombre.charAt(0)}
+            </div>
+            <div>
+              <DialogTitle className="text-xl">Historial del Alumno</DialogTitle>
+              <p className="text-slate-500 font-medium">
+                {alumnos.find(a => a.rut === rutAlumnoHistorial)?.nombre} {alumnos.find(a => a.rut === rutAlumnoHistorial)?.apellidoPaterno}
+                <span className="mx-2 text-slate-300">|</span>
+                <span className="font-mono text-sm">{rutAlumnoHistorial}</span>
+              </p>
+            </div>
+          </div>
+        </DialogHeader>
+
+        <div className="flex-1 overflow-y-auto p-6 bg-slate-50/30">
+          <div className="space-y-4">
+            <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider px-1">Ejecuciones y Cursos Realizados</h4>
+            {alumnos
+              .filter(a => a.rut === rutAlumnoHistorial && (a.empresaId === clienteSeleccionado?.id || ejecuciones.find(e => e.id === a.ejecucionId)?.clienteId === clienteSeleccionado?.id))
+              .map(alum => {
+                const ejec = ejecuciones.find(e => e.id === alum.ejecucionId);
+                const curso = cursos.find(c => c.id === ejec?.cursoId);
+                return (
+                  <div key={alum.id} className="bg-white border rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow border-l-4 border-l-purple-500">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <p className="font-bold text-slate-800 text-lg">{curso?.nombre || 'Curso no identificado'}</p>
+                        <p className="text-xs text-slate-500 flex items-center gap-1">
+                          <Building2 className="w-3 h-3" /> ID Ejecución: {ejec?.codigoPropio || ejec?.id.substring(0,8)}
+                        </p>
+                      </div>
+                      <Badge className={
+                        ejec?.estado === 'Terminado' ? 'bg-green-500' :
+                        ejec?.estado === 'En Curso' ? 'bg-blue-500' : 'bg-slate-500'
+                      }>
+                        {ejec?.estado}
+                      </Badge>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">Periodo</p>
+                        <p className="text-sm font-medium text-slate-700">{ejec?.fechaInicio} al {ejec?.fechaTermino}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">Nota Final / Asistencia</p>
+                        <p className="text-sm font-medium text-slate-700">
+                          {alum.notaFinal ? `Nota: ${alum.notaFinal}` : 'S/N'} | {alum.asistenciaProgreso}% Asist.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+
+        <DialogFooter className="p-4 border-t bg-white">
+          <Button variant="outline" onClick={() => setRutAlumnoHistorial(null)}>Cerrar</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   </div>
