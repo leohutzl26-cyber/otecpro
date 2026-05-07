@@ -807,7 +807,12 @@ export const useStore = create<StoreState>((set, get) => ({
         ...participante, 
         id: data.id, 
         ejecucionId: data.ejecucion_id,
-        empresaId: data.cliente_id 
+        empresaId: data.cliente_id,
+        documentosSAG: { 
+          colinesterasa: { valido: false }, 
+          certificadoMedico: { valido: false }, 
+          poderSimple: { valido: false } 
+        } 
       } as Participante;
 
       set(state => ({
@@ -850,7 +855,11 @@ export const useStore = create<StoreState>((set, get) => ({
         ejecucionId: d.ejecucion_id,
         empresaId: d.cliente_id,
         estadoSAG: 'No Aplica',
-        documentosSAG: { colinesterasa: {}, certificadoMedico: {}, poderSimple: {} }
+        documentosSAG: { 
+          colinesterasa: { valido: false }, 
+          certificadoMedico: { valido: false }, 
+          poderSimple: { valido: false } 
+        }
       })) as Participante[];
 
       set(state => ({
