@@ -132,6 +132,7 @@ export interface Participante {
   };
   estadoSAG: 'Completo' | 'Incompleto' | 'Pendiente' | 'No Aplica';
   empresaId?: string;
+  ejecucionId?: string;
 }
 
 // --- EJECUCIÓN DE CURSO ---
